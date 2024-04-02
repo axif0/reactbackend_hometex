@@ -226,7 +226,11 @@ const ProductEdit = () => {
     };
 
     const handleAttributeFields = (id) => {
-        if (attributes.length >= attributeFieldId) {
+        console.log(attributeFiled.length);
+        let attrib = attributes.length - attributeFiled.length
+        console.log('=');
+        if (attrib >= attributeFieldId) {
+            console.log(attributeFieldId);
             setAttributeFieldId(attributeFieldId + 1);
             setAttributeField((prevState) => [...prevState, attributeFieldId]);
         }
@@ -456,6 +460,8 @@ const ProductEdit = () => {
 
     const handleAttributeShopChange = (row_no, e) => {
         console.log(row_no);
+        console.log('***');
+        console.log(e);
         setAttributeShopQuantities({
             ...attributeShopQuantities,
             [row_no]: e
@@ -872,43 +878,24 @@ const ProductEdit = () => {
                                                                     </label>
                                                                 </div>
                                                                 <div className="col-md-2">
-                                                                    {/* Multi-Select Dropdown for Shops */}
                                                                     <Select
                                                                         options={shops} // Ensure 'shops' is in the format [{ value: 1, label: "Main Branch" }, ...]
                                                                         isMulti
                                                                         // onChange={(e) => { handleAttributeShopChange(id, e) }}
                                                                         // onChange={handleAttributeShopChange}
-                                                                        value={
-                                                                                value?.shop_quantities.map((shop, index) => {
-                                                                                    return (
-                                                                                        { value: shop.shop_id, label: shop.shop_name }
-                                                                                    );
-                                                                                })
-                                                                            }
-                                                                        onChange={(e) => { handleAttributeShopChange(value?.shop_id, e) }}
+                                                                        // value={
+                                                                        //         value?.shop_quantities.map((shop, index) => {
+                                                                        //             return (
+                                                                        //                 { value: shop?.shop_id, label: shop?.shop_name }
+                                                                        //             );
+                                                                        //         })
+                                                                        //     }
+                                                                        // onChange={(e) => { handleAttributeShopChange(value?.id, e) }}
                                                                         className="mb-3"
                                                                         placeholder="Select Shops"
                                                                     />
 
-                                                                    {/* Display Quantity Inputs for Selected Shops */}
-                                                                    {/* {value?.shop_quantities.map((shop) => (
-                                                                    <div key={shop.value} className="mb-2">
-                                                                        <label>{shop.label} Quantity</label>
-                                                                        <input
-                                                                            type="number"
-                                                                            className="form-control"
-                                                                            value={shop.quantity}
-                                                                            // onChange={(e) =>
-                                                                            //     handleAttributeQuantityChange(
-                                                                            //         shop.value,
-                                                                            //         e.target.value
-                                                                            //     )
-                                                                            // }
-                                                                        />
-                                                                    </div>
-                                                                    ))} */}
-
-                                                                    {
+                                                                    {/* {
                                                                         value?.shop_quantities.map((shop, index) => {
                                                                             const inputName = `shop_quantity_${shop.shop_id}`;
                                                                             return (
@@ -924,7 +911,7 @@ const ProductEdit = () => {
                                                                                 </div>
                                                                             );
                                                                         })
-                                                                    }
+                                                                    } */}
                                                                 </div>
 
                                                                 <div className="col-md-2">
