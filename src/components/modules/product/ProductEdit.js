@@ -97,7 +97,7 @@ const ProductEdit = () => {
                     ? [response.data.data.attributes]
                     : [];
 
-
+              
                 // console.log(response, 'response ')
 
                 // const productAttributes = response.data.data.attributes
@@ -280,7 +280,6 @@ const ProductEdit = () => {
                 },
             })
             .then((res) => {
-
                 setCategories(res.data.categories);
                 setBrands(res.data.brands);
                 setCountries(res.data.countries);
@@ -813,7 +812,7 @@ const ProductEdit = () => {
                                         <div className="card-body">
 
                                             {
-                                                attributeFiled.map((value, index) => {
+                                                attributeFiled && attributeFiled?.map((value, index) => {
                                                     console.log(value);
                                                     console.log(index);
                                                     let attributes_options = attribute_obj[value.attribute_id]
@@ -916,7 +915,7 @@ const ProductEdit = () => {
                                                                     /> */}
 
                                                                     {
-                                                                        value?.shop_quantities.map((shop) => {
+                                                                        value?.shop_quantities && value?.shop_quantities?.map((shop) => {
                                                                             const inputName = `shop_quantity_${shop.shop_id}`;
                                                                             const shopName = {
                                                                                 value: shop.shop_id,
