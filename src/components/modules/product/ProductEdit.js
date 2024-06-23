@@ -108,6 +108,7 @@ const ProductEdit = () => {
                     shopQuantities[shop.shop_id] = shop.shop_quantity;
                 });
                 setInput({
+                    attributes: response.data.data.attributes,
                     shops: uniqueShopData,
                     name: response.data.data.name,
                     slug: response.data.data.slug,
@@ -929,7 +930,7 @@ const ProductEdit = () => {
                                                                                         type="number"
                                                                                         className="form-control"
                                                                                         name={inputName}
-                                                                                        value={shop.quantity}
+                                                                                        defaultValue={shop.quantity}
                                                                                         onChange={(e) => handleAttributeInput(e, shop.shop_id)}
                                                                                     />
                                                                                 </div>
