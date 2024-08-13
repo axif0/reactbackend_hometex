@@ -77,6 +77,7 @@ const ProductTransferForm = () => {
     axios
       .request(config)
       .then((response) => {
+        console.log(response.data);
         setProduct(response.data.data);
       })
       .catch((error) => {

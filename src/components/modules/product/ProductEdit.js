@@ -361,7 +361,7 @@ const ProductEdit = () => {
             [e.target.name]: e.target.value,
         }));
     };
- 
+
 
     // Update handleShopSelect to set selectedShops
     const handleShopSelect = (selectedOptions) => {
@@ -634,7 +634,7 @@ const onChangeAttribute = (e, id, attributeName) => {
                                                 className="form-control mt-2"
                                                 type="number"
                                                 name={`shop_quantity_${shop.shop_id}`}
-                                                value={shop.quantity || ''}
+                                                value={shop.shop_quantity || ''}
                                                 onChange={(e) => handleQuantityChange(e, shop.value)}
                                                 placeholder={`Enter Product Stock for ${shop.label}`}
                                             />
