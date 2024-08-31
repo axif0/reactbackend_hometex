@@ -254,7 +254,7 @@ const ChildSubCategoryList = () => {
                                                             handleDetailsModal(category)
                                                         }
                                                         className={"btn btn-sm my-1 btn-info"}><i className="fa-solid fa-eye"></i></button>
-                                                    {/* <Link to={`/child-sub-category/edit/${category.id}`}><button className={"btn btn-sm my-1 mx-1 btn-warning"}><i className="fa-solid fa-pen-to-square"></i></button></Link> */}
+                                                    <Link to={`/child-sub-category/edit/${category.id}`}><button className={"btn btn-sm my-1 mx-1 btn-warning"}><i className="fa-solid fa-pen-to-square"></i></button></Link>
                                                     <button onClick={() => handleSubCategoryDelete(category.id)} className={"btn btn-sm my-1 btn-danger"}><i className="fa-solid fa-trash"></i></button>
                                                 </td>
                                             </tr>

@@ -10,11 +10,13 @@ import { useParams, useNavigate} from "react-router-dom";
 const ProductTransferForm = () => {
   const params = useParams();
   const navigate = useNavigate();
+  const [attributesAll, setAttributesAll] = useState([]);
   const [product, setProduct] = useState({});
   const [formData, setFormData] = useState({
     product_id: params.id,
     from_shop_id: "", // Set an initial from shop ID
     to_shop_id: "", // Set an initial to shop ID
+    attribute_id: "", // Set an initial to attribute ID
     quantity: 1,
   });
 
@@ -40,6 +42,8 @@ const ProductTransferForm = () => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    console.log(formData);
     const token = localStorage.getItem("token");
     const headers = {
       Authorization: `Bearer ${token}`,
@@ -77,8 +81,9 @@ const ProductTransferForm = () => {
     axios
       .request(config)
       .then((response) => {
-        console.log(response.data);
+        console.log(response.data.data);
         setProduct(response.data.data);
+        setAttributesAll(response.data.data.attributes);
       })
       .catch((error) => {
         console.error(error);
@@ -105,26 +110,7 @@ const ProductTransferForm = () => {
                 <h2>Transfer Product</h2>
                 <p>Product: {product.name}</p>
                 <form onSubmit={handleSubmit}>
-                  <div className="form-group">
-                    <label htmlFor="from_shop_id">From Shop:</label>
-                    <select
-                      className="form-control"
-                      id="from_shop_id"
-                      name="from_shop_id"
-                      value={formData.from_shop_id}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select a shop</option>
-                      {product.shops &&
-                        product.shops.map((shop) => (
-                          <option key={shop.shop_id} value={shop.shop_id}>
-                            {shop.shop_name} - Available Quantity:{" "}
-                            {shop.shop_quantity}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
+                <div className="form-group">
                     <label htmlFor="to_shop_id">To Shop:</label>
                     <select
                       className="form-control"
@@ -144,15 +130,32 @@ const ProductTransferForm = () => {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label htmlFor="to_shop_id">Attribute:</label>
+                    <label htmlFor="attribute_id">Attribute:</label>
                     <select
                       className="form-control"
-                      id="to_attribute_id"
-                      name="to_attribute_id"
-                      value={formData.to_shop_id}
+                      id="attribute_id"
+                      name="attribute_id"
+                      value={formData.attribute_id}
                       onChange={handleInputChange}
                     >
                       <option value="">Select attribute</option>
+                        {product.shops && attributesAll.map((attrValue, attrIndex) => (
+                            <option key={attrIndex} value={attrValue.id}>
+                                {attrValue.attribute_name} - ({attrValue.attribute_value})
+                            </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="from_shop_id">From Shop:</label>
+                    <select
+                      className="form-control"
+                      id="from_shop_id"
+                      name="from_shop_id"
+                      value={formData.from_shop_id}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Select a shop</option>
                       {product.shops &&
                         product.shops.map((shop) => (
                           <option key={shop.shop_id} value={shop.shop_id}>
@@ -162,6 +165,7 @@ const ProductTransferForm = () => {
                         ))}
                     </select>
                   </div>
+                  
                   <div className="form-group">
                     <label htmlFor="quantity">Quantity:</label>
                     <input

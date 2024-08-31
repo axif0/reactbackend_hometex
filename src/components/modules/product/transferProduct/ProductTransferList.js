@@ -124,6 +124,7 @@ const ProductTransferList = () => {
                       <th>Product</th>
                       <th>From Shop</th>
                       <th>To Shop</th>
+                      <th>Attributes</th>
                       <th>Quantity</th>
                       <th>Status</th>
                     </tr>
@@ -135,6 +136,7 @@ const ProductTransferList = () => {
                         <td>{transfer?.product?.name}</td>
                         <td>{transfer?.from_shop?.name}</td>
                         <td>{transfer.to_shop?.name}</td>
+                        <td>{transfer?.attribute ? (transfer?.attribute?.attributes?.name +" - ("+ transfer?.attribute?.attribute_value?.name + ")") : null}</td>
                         <td>{transfer.quantity}</td>
                         <td>{transfer.status}</td>
                         <td>

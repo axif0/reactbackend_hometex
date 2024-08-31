@@ -406,11 +406,12 @@ const ProductEdit = () => {
         
         const updatedAttributes = attributeFiled.map(attr => ({
             ...attr,
-            shop_quantities: attr.shop_quantities.map(sq => ({
-                shop_id: sq.shop_id,
-                quantity: sq.quantity
-            }))
+            shop_quantities: attr.shop_quantities.reduce((acc, sq) => {
+                acc[sq.shop_id] = sq.quantity.toString(); // Convert quantity to string and use shop_id as key
+                return acc;
+            }, {}) // Initialize as an empty object
         }));
+    
     
         const updatedInput = { ...input };
     
