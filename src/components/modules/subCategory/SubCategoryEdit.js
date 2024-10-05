@@ -34,7 +34,8 @@ const getSubCategory = () =>{
           'Authorization': `Bearer ${token}`
       }
   }).then(res=>{
-      setInput(res.data.data)
+    console.log(res?.data?.data);
+      setInput(res?.data?.data)
   })
 }
 

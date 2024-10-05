@@ -37,22 +37,20 @@ const ChildSubCategoryEdit = () => {
         },
       })
       .then((res) => {
-        setInput(res.data.data);
+        console.log(res?.data?.data);
+        setInput(res?.data?.data);
       });
   };
 
   const handleInput = (e) => {
-  if (e.target.name === 'name') {
-    let slug = e.target.value
-    slug = slug.toLowerCase()
-    slug = slug.replaceAll(' ', '-')
-    setInput((prevState) => ({ ...prevState, slug: slug }))
-  } else if (e.target.name === 'status') { // Handle status field
-    setInput((prevState) => ({ ...prevState, [e.target.name]: parseInt(e.target.value) }));
-  } else {
-    setInput((prevState) => ({ ...prevState, [e.target.name]: e.target.value }));
-  }
-};
+    if (e.target.name === 'name') {
+      let slug = e.target.value
+      slug = slug.toLowerCase()
+      slug = slug.replaceAll(' ', '-')
+      setInput((prevState) => ({ ...prevState, slug: slug }))
+    }
+    setInput(prevState => ({ ...prevState, [e.target.name]: e.target.value }))
+  };
 
   const handlePhoto = (e) => {
     let file = e.target.files[0];
@@ -82,7 +80,7 @@ const ChildSubCategoryEdit = () => {
           toast: true,
           timer: 1500,
         });
-        navigate("/sub-category");
+        navigate("/child-sub-category");
       })
       .catch((errors) => {
         setIsLoading(false);
@@ -130,9 +128,7 @@ const ChildSubCategoryEdit = () => {
                       <option value={""}>Select Sub Category</option>{" "}
                       {/* Placeholder option */}
                       {subCategories.map((sub_category, index) => (
-                        <option key={index} value={sub_category.id}>
-                          {sub_category.name}
-                        </option>
+                        <option key={index} value={sub_category.id}>{sub_category.name}</option>
                       ))}
                     </select>
                     <p className={"login-error-msg"}>

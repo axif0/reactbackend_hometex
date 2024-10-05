@@ -341,34 +341,32 @@ const AddProduct = () => {
             shop_ids: shopIds,
         };
 
-        console.log(payload);
-
-        // axios
-        //     .post(`${Constants.BASE_URL}/product`, payload, {
-        //         headers: {
-        //             Authorization: `Bearer ${token}`,
-        //         },
-        //     })
-        //     .then((res) => {
-        //         setIsLoading(false);
-        //         Swal.fire({
-        //             position: "top-end",
-        //             icon: res.data.cls,
-        //             title: res.data.msg,
-        //             showConfirmButton: false,
-        //             toast: true,
-        //             timer: 1500,
-        //         });
-        //         if (res.data.product_id != undefined) {
-        //             navigate("/product/photo/" + res.data.product_id);
-        //         }
-        //     })
-        //     .catch((errors) => {
-        //         setIsLoading(false);
-        //         if (errors.response.status == 422) {
-        //             setErrors(errors.response.data.errors);
-        //         }
-        //     });
+        axios
+            .post(`${Constants.BASE_URL}/product`, payload, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+            .then((res) => {
+                setIsLoading(false);
+                Swal.fire({
+                    position: "top-end",
+                    icon: res.data.cls,
+                    title: res.data.msg,
+                    showConfirmButton: false,
+                    toast: true,
+                    timer: 1500,
+                });
+                if (res.data.product_id != undefined) {
+                    navigate("/product/photo/" + res.data.product_id);
+                }
+            })
+            .catch((errors) => {
+                setIsLoading(false);
+                if (errors.response.status == 422) {
+                    setErrors(errors.response.data.errors);
+                }
+            });
     };
 
     useEffect(() => {
@@ -874,30 +872,25 @@ const AddProduct = () => {
                                                                     }
                                                                 />
                                                             </div>
-                                                        ))} */}
+                                                            ))} */}
 
-{
-    data_obj.length > 0 && data_obj.map((shop, index) => {
-        const inputName = `shop_quantity_${shop.value}`;
-        return (
-            <div key={shop.value} className="mb-2">
-                <label>{shop.label} Quantity</label>
-                <input
-                    type="number"
-                    className="form-control"
-                    name={inputName}
-                    value={attribute_input[id]?.shop_quantities?.[shop.value] || ""}
-                    onChange={(e) => handleAttributeInput(e, id)}
-                />
-            </div>
-        );
-    })
-}
-
-
-
-
-
+                                                            {
+                                                                data_obj.length > 0 && data_obj.map((shop, index) => {
+                                                                    const inputName = `shop_quantity_${shop.value}`;
+                                                                    return (
+                                                                        <div key={shop.value} className="mb-2">
+                                                                            <label>{shop.label} Quantity</label>
+                                                                            <input
+                                                                                type="number"
+                                                                                className="form-control"
+                                                                                name={inputName}
+                                                                                value={attribute_input[id]?.shop_quantities?.[shop.value] || ""}
+                                                                                onChange={(e) => handleAttributeInput(e, id)}
+                                                                            />
+                                                                        </div>
+                                                                    );
+                                                                })
+                                                            }
                                                         </div>
                                                         <div className="col-md-2">
                                                             <label className="w-100 mt-4">
