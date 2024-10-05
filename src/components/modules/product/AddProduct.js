@@ -339,6 +339,7 @@ const AddProduct = () => {
             shop_quantities: shop_quantities,
             stock: totalStock,
             shop_ids: shopIds,
+            meta: meta_input
         };
 
         axios
@@ -1043,7 +1044,7 @@ const AddProduct = () => {
                                 <div className="col-md-12">
                                     <div className="card my-4">
                                         <div className="card-header">
-                                            <h5>Product SEO friendly Info</h5>
+                                            <h5>Product SEO Friendly Info</h5>
                                         </div>
                                         <div className="card-body">
                                             {metaFiled.map((id, ind) => (
@@ -1086,7 +1087,7 @@ const AddProduct = () => {
                                                                 name={"content"}
                                                                 value={
                                                                     meta_input[id] != undefined
-                                                                        ? meta_input[id].value
+                                                                        ? meta_input[id].content
                                                                         : null
                                                                 }
                                                                 onChange={(e) =>

@@ -14,6 +14,11 @@ const ProductEdit = () => {
     const params = useParams();
     const [attribute_input, setAttribute_input] = useState({});
     const [specification_input, setSpecification_input] = useState([{ name: '', value: '' }]);
+
+    const [meta_input, setMeta_input] = useState([{ name: '', content: '' }]);
+    const [metaFiled, setMetaFiled] = useState([]);
+    const [metaFiledId, setMetaFiledId] = useState(1);
+
     const [errors, setErrors] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [categories, setCategories] = useState([]);
@@ -79,6 +84,13 @@ const ProductEdit = () => {
         newSpecifications[index][field] = value;
         setSpecification_input(newSpecifications);
     };
+
+    const handleMetaInput = (index, field, value) => {
+        const newMetta = [...meta_input];
+        newMetta[index][field] = value;
+        setMeta_input(newMetta);
+    };
+
     const getProduct = () => {
         const token = localStorage.getItem("token");
         const config = {
@@ -104,6 +116,9 @@ const ProductEdit = () => {
 
                 setSpecificationFiled(transformedSpecifications || []);
                 setSpecification_input(transformedSpecifications || []);
+
+                setMetaFiled(response.data.data.meta_data || []);
+                setMeta_input(response.data.data.meta_data || []);
 
                 setAttributeField(response.data.data.attributes.map(attr => ({
                     ...attr,
@@ -203,10 +218,22 @@ const ProductEdit = () => {
         setSpecification_input((prevState) => prevState.filter((_, i) => i !== index));
     };
 
+    const handleMetaRemove = (index) => {
+        setMetaFiled((prevState) => prevState.filter((_, i) => i !== index));
+        setMeta_input((prevState) => prevState.filter((_, i) => i !== index));
+    };
+
     const handleSpecificationFields = () => {
         setSpecificationFiledId((prevId) => prevId + 1);
         setSpecificationFiled((prevState) => [...prevState, specificationFiledId]);
         setSpecification_input((prevState) => [...prevState, { name: '', value: '' }]);
+    };
+
+    const handleMetaFields = () => {
+        setMetaFiledId((prevId) => prevId + 1);
+        setMetaFiled((prevState) => [...prevState, metaFiledId]);
+        setMeta_input((prevState) => [...prevState, { name: '', content: '' }]);
+        console.log(metaFiledId);
     };
 
 
@@ -294,16 +321,18 @@ const ProductEdit = () => {
 
     useEffect(() => {
         console.log("Input state updated with attributes:", input.attributes);
+
     }, [input]);
-    useEffect(() => {
-        console.log("Attribute input changed:", attribute_input); // Add this line
-        setInput((prevState) => ({ ...prevState, attributes: attribute_input }));
-    }, [attribute_input]);
+
+    // useEffect(() => {
+    //     console.log("Attribute input changed:", attribute_input); // Add this line
+    //     setInput((prevState) => ({ ...prevState, attributes: attribute_input }));
+    // }, [attribute_input]);
 
     // Add additional logging to ensure the input state is updated correctly
-    useEffect(() => {
-        console.log("Input state updated with attributes:", input.attributes);
-    }, [input]);
+    // useEffect(() => {
+    //     console.log("Input state updated with attributes:", input.attributes);
+    // }, [input]);
 
 
     useEffect(() => {
@@ -321,6 +350,7 @@ const ProductEdit = () => {
                 },
             })
             .then((res) => {
+                // console.log(res);
                 setCategories(res.data.categories);
                 setBrands(res.data.brands);
                 setCountries(res.data.countries);
@@ -449,6 +479,7 @@ const ProductEdit = () => {
             shop_ids: shopIds,
             attributes: [...attributeEntries, ...deletedAttributes],
             specifications: specification_input,
+            meta: meta_input
         };
         console.log(payload);
     
@@ -492,10 +523,11 @@ const ProductEdit = () => {
         setInput((prevState) => ({
             ...prevState,
             specifications: specification_input,
+            meta_data: meta_input
         }));
-    }, [specification_input]);
+    }, [specification_input, meta_input]);
 
-    console.log(specification_input);
+    // console.log(meta_input);
 
     const handleMulipleSelect = (e) => {
         let value = [];
@@ -1110,16 +1142,12 @@ const ProductEdit = () => {
                                         </div>
                                     </div>
                                 </div>
-
-
-
                                 <div className="col-md-12">
                                     <div className="card my-4">
                                         <div className="card-header">
                                             <h5>Product Specifications</h5>
                                         </div>
                                         <div className="card-body">
-
                                             <div>
                                                 {specification_input.map((spec, index) => (
                                                     <div key={index} className="specification-field d-flex align-items-center mb-2">
@@ -1142,17 +1170,91 @@ const ProductEdit = () => {
                                                         </button>
                                                     </div>
                                                 ))}
-                                                {/* <button type="button" onClick={handleSpecificationFields}>Add Specification</button> */}
                                             </div>
-
-                                            {/* <button onClick={handleSpecificationFields}>Add Specification</button> */}
-
-
                                             <div className="row">
                                                 <div className="col-md-12 text-center">
                                                     <button
                                                         className={"btn btn-success"}
                                                         onClick={handleSpecificationFields}
+                                                    >
+                                                        <i className="fa-solid fa-plus" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="col-md-12">
+                                    <div className="card my-4">
+                                        <div className="card-header">
+                                            <h5>Product SEO Friendly Info</h5>
+                                        </div>
+                                        <div className="card-body">
+                                            <div>
+                                                {meta_input.map((spec, index) => (
+                                                    <div key={index} className="row specification-field d-flex align-items-baseline mb-2">
+                                                        <div  className="col-md-5">
+                                                            <label className={"w-100 mt-4"}>
+                                                                <p>Mata Content</p>
+                                                                <input
+                                                                    type="text"
+                                                                    name="name"
+                                                                    value={spec.name}
+                                                                    className="form-control me-2"
+                                                                    placeholder={"Enter Product Meta Name"}
+                                                                    onChange={(e) => handleMetaInput(index, 'name', e.target.value)}
+                                                                />
+                                                                <p className={"login-error-msg"}>
+                                                                    <small>
+                                                                        {errors.name != undefined
+                                                                            ? errors.name[0]
+                                                                            : null}
+                                                                    </small>
+                                                                </p>
+                                                            </label>
+                                                        </div>
+                                                        
+                                                        <div className="col-md-6">
+                                                            <label className={"w-100 mt-4"}>
+                                                                <p>Mata Content</p>
+                                                                <input
+                                                                    type="text"
+                                                                    name="content"
+                                                                    value={spec.content}
+                                                                    className="form-control me-2"
+                                                                    placeholder={"Enter Product Meta Content"}
+                                                                    onChange={(e) => handleMetaInput(index, 'content', e.target.value)}
+                                                                />
+                                                                <p className={"login-error-msg"}>
+                                                                    <small>
+                                                                        {errors.name != undefined
+                                                                            ? errors.name[0]
+                                                                            : null}
+                                                                    </small>
+                                                                </p>
+                                                            </label>
+                                                        </div>
+                                                        <div className="col-md-1">
+                                                            {spec.isNew &&(
+                                                            <button
+                                                                className={"btn btn-danger"}
+                                                                onClick={() =>
+                                                                    handleMetaRemove(index)
+                                                                }
+                                                            >
+                                                                <i className="fa-solid fa-minus" />
+                                                            </button>
+                                                            )}
+                                                        </div>                                                        
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="row">
+                                                <div className="col-md-12 text-center">
+                                                    <button
+                                                        className={"btn btn-success"}
+                                                        onClick={handleMetaFields}
                                                     >
                                                         <i className="fa-solid fa-plus" />
                                                     </button>
