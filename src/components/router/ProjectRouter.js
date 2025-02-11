@@ -41,6 +41,7 @@ import ProductTransferForm from "../modules/product/transferProduct/ProductTrans
 import AddEcommerceMenu from "../modules/settings/AddEcommerceMenu";
 import EditEcommerceMenu from "../modules/settings/EditEcommerceMenu";
 import EcommerceMenuList from "../modules/settings/EcommerceMenuList";
+import BarCodeGenerate from "../modules/bar_code/BarCodeGenerate";
 
 const ProjectRouter = [
   {
@@ -181,7 +182,7 @@ const ProjectRouter = [
       },
       {
         path: "/generate-bar-code",
-        element: <BarCode/>,
+        element: <BarCodeGenerate/>,
       },
       {
         path: "/reports",

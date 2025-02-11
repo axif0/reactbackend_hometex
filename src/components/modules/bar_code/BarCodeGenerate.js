@@ -7,7 +7,7 @@ import { useReactToPrint } from "react-to-print";
 import BarCodePage from "./BarCodePage";
 import { useLocation } from "react-router-dom";
 
-const BarCode = () => {
+const BarCodeGenerate = () => {
   const componentRef = useRef();
   const location = useLocation();
   const productSKU = location?.state?.productSKU;
@@ -16,14 +16,16 @@ const BarCode = () => {
   const [attributes, setAttributes] = useState([]);
   const [input, setInput] = useState({
     name: "",
-    sub_category_id: "",
     category_id: "",
+    sub_category_id: "",
+    child_sub_category_id: "",
     attribute_value_id: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
+  const [childSubCategories, setChildSubCategories] = useState([]);
 
   useEffect(() => {
     if(productSKU){
@@ -32,7 +34,8 @@ const BarCode = () => {
         ...prevInput,
         name: productSKU?.name || "",
         category_id: productSKU?.category?.id || "",
-        sub_category_id: productSKU?.child_sub_category?.id || "",
+        sub_category_id: productSKU?.sub_category?.id || "",
+        child_sub_category_id: productSKU?.child_sub_category?.id || "",
         attribute_value_id: productSKU?.child_sub_category?.id || "",
       }));
     }
@@ -43,6 +46,13 @@ const BarCode = () => {
       let category_id = parseInt(e.target.value);
       if (!Number.isNaN(category_id)) {
         getSubCategories(e.target.value);
+      }
+    }
+
+    if (e.target.name === "sub_category_id") {
+      let sub_category_id = parseInt(e.target.value);
+      if (!Number.isNaN(sub_category_id)) {
+        getChildSubCategories(e.target.value);
       }
     }
 
@@ -135,6 +145,19 @@ const BarCode = () => {
       });
   };
 
+  const getChildSubCategories = (sub_category_id) => {
+    const token = localStorage.getItem("token");
+    axios
+      .get(`${Constants.BASE_URL}/get-child-sub-category-list/${sub_category_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
+        setChildSubCategories(res.data);
+      });
+  };
+
   useEffect(() => {
     getCategories();
   }, []);
@@ -193,7 +216,7 @@ const BarCode = () => {
                 </div>
                 <div className="col-md-3">
                   <label className="w-100 mt-4 mt-md-0">
-                    <p>Select Product Sub Category</p>
+                    <p>Select Product Sub-Category</p>
                     <select
                       className={"form-select mt-2"}
                       name={"sub_category_id"}
@@ -201,7 +224,7 @@ const BarCode = () => {
                       onChange={handleInput}
                       disabled={input.category_id == undefined}
                     >
-                      <option>Select Sub Category</option>
+                      <option>Select Sub-Category</option>
                       {subCategories.map((sub_category, index) => (
                         <option value={sub_category.id} key={index}>
                           {sub_category.name}
@@ -210,7 +233,26 @@ const BarCode = () => {
                     </select>
                   </label>
                 </div>
-                <div className="col-md-4">
+                <div className="col-md-3">
+                  <label className="w-100 mt-4 mt-md-0">
+                    <p>Select Product Child Sub-Category</p>
+                    <select
+                      className={"form-select mt-2"}
+                      name={"sub_category_id"}
+                      value={input.child_sub_category_id}
+                      onChange={handleInput}
+                      disabled={input.sub_category_id == undefined}
+                    >
+                      <option>Select Child Sub-Category</option>
+                      {childSubCategories.map((child_sub_category, index) => (
+                        <option value={child_sub_category.id} key={index}>
+                          {child_sub_category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="col-md-3">
                   <label className="w-100 mt-4 mt-md-0">
                     <p>Product Name</p>
                     <input
@@ -223,23 +265,11 @@ const BarCode = () => {
                     />
                   </label>
                 </div>
-                <div className="col-md-2">
-                  <div className="d-grid mt-4">
-                    <button
-                      onClick={handleProductSearch}
-                      className={"btn theme-button"}
-                      dangerouslySetInnerHTML={{
-                        __html: isLoading
-                          ? '<span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span> Loading...'
-                          : "Search",
-                      }}
-                    />
-                  </div>
-                </div>
+                
               </div>
               <div className="container">
-                <div className="row my-2 d-flex justify-content-between align-items-center">
-                  <div className="col-md-4">
+                <div className="row my-2 d-flex align-items-center">
+                  <div className="col-md-3">
                     <label className="w-100 mt-4 mt-md-0">
                       <p>Column Count</p>
                       <input
@@ -252,7 +282,7 @@ const BarCode = () => {
                       />
                     </label>
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <label className="w-100 mt-4 mt-md-0">
                       <p>Select Attribute</p>
                       <select
@@ -270,7 +300,20 @@ const BarCode = () => {
                       </select>
                     </label>
                   </div>
-                  <div className="col-md-4">
+                <div className="col-md-2">
+                  <div className="d-grid mt-4">
+                    <button
+                      onClick={handleProductSearch}
+                      className={"btn theme-button"}
+                      dangerouslySetInnerHTML={{
+                        __html: isLoading
+                          ? '<span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span> Loading...'
+                          : "Search",
+                      }}
+                    />
+                  </div>
+                </div>
+                  <div className="col-md-1">
                     <div className="d-grid">
                       <button
                         onClick={handlePrint}
@@ -282,7 +325,7 @@ const BarCode = () => {
                   </div>
                 </div>
               </div>
-              <div className="bar-code-area-wraper">
+              <div className="bar-code-area-wraper mt-3">
                 <BarCodePage
                   products={products}
                   columnCount={columnCount}
@@ -300,4 +343,4 @@ const BarCode = () => {
   );
 };
 
-export default BarCode;
+export default BarCodeGenerate;
