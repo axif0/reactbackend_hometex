@@ -8,7 +8,7 @@ import BarCodePage from "./BarCodePage";
 import { useLocation } from "react-router-dom";
 
 const BarCodeGenerate = () => {
-  const componentRef = useRef();
+  const componentRef = useRef(null);
   const location = useLocation();
   const productSKU = location?.state?.productSKU;
   const [columnCount, setColumnCount] = useState(1);
@@ -26,10 +26,11 @@ const BarCodeGenerate = () => {
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [childSubCategories, setChildSubCategories] = useState([]);
+  const [barcodeRef, setBarcodeRef] = useState(null);
 
   useEffect(() => {
     if(productSKU){
-      console.log(productSKU);
+      // console.log(productSKU);
       setInput((prevInput) => ({
         ...prevInput,
         name: productSKU?.name || "",
@@ -38,6 +39,15 @@ const BarCodeGenerate = () => {
         child_sub_category_id: productSKU?.child_sub_category?.id || "",
         attribute_value_id: productSKU?.child_sub_category?.id || "",
       }));
+
+      if (productSKU?.category?.id) {
+        getSubCategories(productSKU.category.id);
+    }
+
+      // Fetch Child Sub-Categories if sub-category exists
+      if (productSKU?.sub_category?.id) {
+          getChildSubCategories(productSKU.sub_category.id);
+      }
     }
   }, [productSKU]);
 
@@ -69,44 +79,93 @@ const BarCodeGenerate = () => {
     setSelectedAttribute(selectedAttr || null);
   };
 
+  // const handleProductSearch = async () => {
+  //   const token = localStorage.getItem("token");
+  //   await axios
+  //     .get(
+  //       `${Constants.BASE_URL}/get-product-list-for-bar-code?name=${input?.name}&category_id=${input?.category_id}&sub_category_id=${input?.sub_category_id}&child_sub_category_id=${input?.child_sub_category_id}`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       }
+  //     )
+  //     .then((res) => {
+  //       setProducts(res.data.data);
+
+  //       if (res.data.data.length > 0) {
+  //         console.log(res.data.data[0]);
+  //         const firstProduct = res.data.data[0];
+
+  //         if (
+  //           firstProduct.product_attributes &&
+  //           firstProduct.product_attributes.length > 0
+  //         ) {
+  //           setAttributes(firstProduct.product_attributes);
+  //           setSelectedAttribute(
+  //             firstProduct.product_attributes.find(
+  //               (attr) =>
+  //                 attr.id === parseInt(input.attribute_value_id, 10)
+  //             ) || firstProduct.product_attributes[0]
+  //           );
+  //         } else {
+  //           setAttributes([]);
+  //           setSelectedAttribute(null);
+  //         }
+  //       } else {
+  //         setAttributes([]);
+  //         setSelectedAttribute(null);
+  //       }
+  //     });
+  // };
+
   const handleProductSearch = async () => {
     const token = localStorage.getItem("token");
-    await axios
-      .get(
-        `${Constants.BASE_URL}/get-product-list-for-bar-code?name=${input?.name}&category_id=${input?.category_id}&sub_category_id=${input?.sub_category_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
-      .then((res) => {
-        setProducts(res.data.data);
-
-        if (res.data.data.length > 0) {
-          const firstProduct = res.data.data[0];
-
-          if (
-            firstProduct.product_attributes &&
-            firstProduct.product_attributes.length > 0
-          ) {
-            setAttributes(firstProduct.product_attributes);
-            setSelectedAttribute(
-              firstProduct.product_attributes.find(
-                (attr) =>
-                  attr.id === parseInt(input.attribute_value_id, 10)
-              ) || firstProduct.product_attributes[0]
-            );
-          } else {
-            setAttributes([]);
-            setSelectedAttribute(null);
-          }
+    setIsLoading(true);
+  
+    try {
+      const response = await axios.get(
+        `${Constants.BASE_URL}/get-product-list-for-bar-code?name=${input?.name}&category_id=${input?.category_id}&sub_category_id=${input?.sub_category_id}&child_sub_category_id=${input?.child_sub_category_id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
+      setProducts(response.data.data);
+      
+      if (response.data.data.length > 0) {
+        const firstProduct = response.data.data[0];
+        if (firstProduct.product_attributes?.length > 0) {
+          setAttributes(firstProduct.product_attributes);
+          setSelectedAttribute(firstProduct.product_attributes.find(
+            (attr) => attr.id === parseInt(input.attribute_value_id, 10)
+          ) || firstProduct.product_attributes[0]);
         } else {
           setAttributes([]);
           setSelectedAttribute(null);
         }
-      });
+      } else {
+        setAttributes([]);
+        setSelectedAttribute(null);
+      }
+  
+      // Restore the reference explicitly
+      setTimeout(() => {
+        if (componentRef.current) {
+          setBarcodeRef(componentRef.current);
+        }
+      }, 100); // Give React time to re-render
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
+  useEffect(() => {
+    if (componentRef.current) {
+      setBarcodeRef(componentRef.current);
+    }
+  }, [products, columnCount]);
+
 
   useEffect(() => {
     if (products.length > 0) {
@@ -162,12 +221,31 @@ const BarCodeGenerate = () => {
     getCategories();
   }, []);
 
-  console.log("================");
-  console.log(componentRef.current);
+  const setComponentRef = (element) => {
+    if (element) {
+      componentRef.current = element;
+      setBarcodeRef(element);
+    }
+  };
+
+  // useEffect(() => {
+  //   console.log("ComponentRef updated:", componentRef.current);
+  // }, [componentRef?.current]);
+
+  // console.log("========****========");
+  // console.log(componentRef.current);
+  // console.log("========****========");
 
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    content: () => {
+      if (!componentRef.current) {
+        console.error("ComponentRef is null. Cannot print.");
+        return null;
+      }
+      return componentRef.current;
+    },
     documentTitle: "Bar Codes",
+
   });
 
   return (
@@ -222,7 +300,7 @@ const BarCodeGenerate = () => {
                       name={"sub_category_id"}
                       value={input.sub_category_id}
                       onChange={handleInput}
-                      disabled={input.category_id == undefined}
+                      disabled={input.category_id === undefined}
                     >
                       <option>Select Sub-Category</option>
                       {subCategories.map((sub_category, index) => (
@@ -238,10 +316,10 @@ const BarCodeGenerate = () => {
                     <p>Select Product Child Sub-Category</p>
                     <select
                       className={"form-select mt-2"}
-                      name={"sub_category_id"}
+                      name={"child_sub_category_id"}
                       value={input.child_sub_category_id}
                       onChange={handleInput}
-                      disabled={input.sub_category_id == undefined}
+                      disabled={input.sub_category_id === undefined}
                     >
                       <option>Select Child Sub-Category</option>
                       {childSubCategories.map((child_sub_category, index) => (
@@ -325,7 +403,22 @@ const BarCodeGenerate = () => {
                   </div>
                 </div>
               </div>
-              <div className="bar-code-area-wraper mt-3">
+              <div style={{ position: "relative" }}>
+                <div className="bar-code-area-wraper mt-3 pt-3" ref={setComponentRef}>
+                {products.length > 0 && (
+                  <BarCodePage
+                    products={products}
+                    columnCount={columnCount}
+                    printing={true}
+                    rowCount={Math.ceil(products.length / columnCount)}
+                    selectedAttribute={selectedAttribute}
+                  />
+                )}
+                </div>
+              </div>
+
+
+              {/* <div className="bar-code-area-wraper mt-3 pt-3" ref={componentRef} style={{ display: "block" }}>
                 <BarCodePage
                   products={products}
                   columnCount={columnCount}
@@ -334,7 +427,15 @@ const BarCodeGenerate = () => {
                   ref={componentRef}
                   selectedAttribute={selectedAttribute}
                 />
-              </div>
+
+            <BarCodePage
+                products={products}
+                columnCount={columnCount}
+                printing={true}
+                rowCount={Math.ceil(products.length / columnCount)}
+                selectedAttribute={selectedAttribute}
+              /> 
+              </div> */}
             </div>
           </div>
         </div>
