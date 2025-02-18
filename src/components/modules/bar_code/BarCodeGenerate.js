@@ -221,12 +221,12 @@ const BarCodeGenerate = () => {
     getCategories();
   }, []);
 
-  // const setComponentRef = (element) => {
-  //   if (element) {
-  //     componentRef.current = element;
-  //     setBarcodeRef(element);
-  //   }
-  // };
+  const setComponentRef = (element) => {
+    if (element) {
+      componentRef.current = element;
+      setBarcodeRef(element);
+    }
+  };
 
   // useEffect(() => {
   //   console.log("ComponentRef updated:", componentRef.current);
@@ -245,25 +245,25 @@ const BarCodeGenerate = () => {
       return componentRef.current;
     },
     documentTitle: "Bar Codes",
-    pageStyle: `
-    @page {
-      size: 55mm 25mm; /* Custom receipt label size */
-      margin: 5mm;
-    }
+    // pageStyle: `
+    // @page {
+    //   size: 55mm 25mm; /* Custom receipt label size */
+    //   margin: 5mm;
+    // }`
 
-    @media print {
-      body {
-        visibility: hidden;
-      }
+    // @media print {
+    //   body {
+    //     visibility: hidden;
+    //   }
       
-      .barcode-print {
-        visibility: visible;
-        width: 80mm;
-        height: 50mm;
-        text-align: center;
-        font-family: Arial, sans-serif;
-      }
-    }`
+    //   .barcode-print {
+    //     visibility: visible;
+    //     width: 80mm;
+    //     height: 50mm;
+    //     text-align: center;
+    //     font-family: Arial, sans-serif;
+    //   }
+    // }`
 
   });
 
@@ -423,14 +423,14 @@ const BarCodeGenerate = () => {
                 </div>
               </div>
               <div style={{ position: "relative" }}>
-                <div className="bar-code-area-wraper mt-3 pt-3" ref={componentRef}>
+                <div className="bar-code-area-wraper mt-3 pt-3">
                 {products.length > 0 && (
                   <BarCodePage
                     products={products}
                     columnCount={columnCount}
                     printing={true}
                     rowCount={Math.ceil(products.length / columnCount)}
-                    ref={componentRef}
+                    ref={setComponentRef}
                     selectedAttribute={selectedAttribute}
                   />
                 )}

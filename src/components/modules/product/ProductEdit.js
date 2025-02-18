@@ -54,6 +54,7 @@ const ProductEdit = () => {
     };
 
     const handleAttributeShopQuantityChange = (attributeId, shopId, quantity) => {
+        
         setAttributeField((prevState) =>
             prevState.map((attr) =>
                 attr.id === attributeId
@@ -288,7 +289,7 @@ const ProductEdit = () => {
 
     const handleAttributeInput = (e, id, attributeName, index) => {
         const { name, value } = e.target;
-        console.log("handleAttributeInput called with id:", id, "name:", name, "value:", value, "attributeName:", attributeName, "index:", index);
+        // console.log("handleAttributeInput called with id:", id, "name:", name, "value:", value, "attributeName:", attributeName, "index:", index);
 
         setAttribute_input((prevState) => ({
             ...prevState,
@@ -424,6 +425,7 @@ const ProductEdit = () => {
 
     // Update handleQuantityChange to set quantities
     const handleQuantityChange = (event, shopId) => {
+        console.log(shopId);
         const newQuantities = { ...quantities };
         newQuantities[shopId] = parseInt(event.target.value, 10) || 0;
         setQuantities(newQuantities);
@@ -660,9 +662,6 @@ const ProductEdit = () => {
         });
     };
 
-
-
-
     return (
         <>
             <Breadcrumb title={"Edit Product"} />
@@ -695,12 +694,13 @@ const ProductEdit = () => {
                                     <div className="col-md-6" key={shop.value}>
                                         <label className="w-100 mt-4">
                                             <p>Product Stock for {shop.label}</p>
+                                           
                                             <input
                                                 className="form-control mt-2"
                                                 type="number"
-                                                name={`shop_quantity_${shop.shop_id}`}
-                                                value={shop.quantity || ''}
-                                                onChange={(e) => handleQuantityChange(e, shop.value,e.target.value)}
+                                                name={`shop_quantity_${shop.value}`}
+                                                value={shop.quantity}
+                                                onChange={(e) => handleQuantityChange(e, shop.value)}
                                                 placeholder={`Enter Product Stock for ${shop.label}`}
                                             />
                                         </label>

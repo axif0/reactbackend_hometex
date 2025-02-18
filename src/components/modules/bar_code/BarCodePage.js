@@ -12,8 +12,9 @@ const TruncateText = (text, maxLength) => {
 const BarCodePage = React.forwardRef((props, ref) => {
   const { selectedAttribute, products, columnCount, printing } = props;
 
-  // console.log("=========");
-  // console.log(ref);
+  console.log("=========");
+  console.log(ref);
+  console.log("=========");
 
   const calculatePrice = (basePrice, mathSign, number) => {
     switch (mathSign) {
