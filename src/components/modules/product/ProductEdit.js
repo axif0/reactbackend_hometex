@@ -15,10 +15,6 @@ const ProductEdit = () => {
     const [attribute_input, setAttribute_input] = useState({});
     const [specification_input, setSpecification_input] = useState([{ name: '', value: '' }]);
 
-    const [meta_input, setMeta_input] = useState([{ name: '', content: '' }]);
-    const [metaFiled, setMetaFiled] = useState([]);
-    const [metaFiledId, setMetaFiledId] = useState(1);
-
     const [errors, setErrors] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [categories, setCategories] = useState([]);
@@ -86,15 +82,8 @@ const ProductEdit = () => {
         setSpecification_input(newSpecifications);
     };
 
-    const handleMetaInput = (index, field, value) => {
-        const newMetta = [...meta_input];
-        newMetta[index][field] = value;
-        setMeta_input(newMetta);
-    };
-
     const getProduct = () => {
         const token = localStorage.getItem("token");
-        console.log(`${Constants.BASE_URL}/product/${params.id}`);
         const config = {
             method: "get",
             maxBodyLength: Infinity,
@@ -107,7 +96,6 @@ const ProductEdit = () => {
         axios
             .request(config)
             .then((response) => {
-                console.log(response);
                 const costValue = response.data.data.cost.replace(/[৳,]/g, "");
                 const priceValue = response.data.data.price.replace(/[৳,]/g, "");
                 const shopData = response.data.data.shops;
@@ -119,9 +107,6 @@ const ProductEdit = () => {
 
                 setSpecificationFiled(transformedSpecifications || []);
                 setSpecification_input(transformedSpecifications || []);
-
-                setMetaFiled(response.data.data.meta_data || []);
-                setMeta_input(response.data.data.meta_data || []);
 
                 setAttributeField(response.data.data.attributes.map(attr => ({
                     ...attr,
@@ -176,6 +161,9 @@ const ProductEdit = () => {
                     price_formula: response.data.data.price_formula,
                     field_limit: response.data.data.field_limit,
                     status: response.data.data.status == "Active" ? 1 : 0,
+                    meta_title: response?.data?.data?.meta_title,
+                    meta_keywords: response?.data?.data?.meta_keywords,
+                    meta_description: response?.data?.data?.meta_description,
                 });
                 setAttributes(productAttributes);
                 setQuantities(shopQuantities);
@@ -221,22 +209,10 @@ const ProductEdit = () => {
         setSpecification_input((prevState) => prevState.filter((_, i) => i !== index));
     };
 
-    const handleMetaRemove = (index) => {
-        setMetaFiled((prevState) => prevState.filter((_, i) => i !== index));
-        setMeta_input((prevState) => prevState.filter((_, i) => i !== index));
-    };
-
     const handleSpecificationFields = () => {
         setSpecificationFiledId((prevId) => prevId + 1);
         setSpecificationFiled((prevState) => [...prevState, specificationFiledId]);
         setSpecification_input((prevState) => [...prevState, { name: '', value: '' }]);
-    };
-
-    const handleMetaFields = () => {
-        setMetaFiledId((prevId) => prevId + 1);
-        setMetaFiled((prevState) => [...prevState, metaFiledId]);
-        setMeta_input((prevState) => [...prevState, { name: '', content: '' }]);
-        console.log(metaFiledId);
     };
 
 
@@ -482,8 +458,7 @@ const ProductEdit = () => {
             stock: totalStock,
             shop_ids: shopIds,
             attributes: [...attributeEntries, ...deletedAttributes],
-            specifications: specification_input,
-            meta: meta_input
+            specifications: specification_input
         };
         console.log(payload);
     
@@ -526,12 +501,9 @@ const ProductEdit = () => {
     useEffect(() => {
         setInput((prevState) => ({
             ...prevState,
-            specifications: specification_input,
-            meta_data: meta_input
+            specifications: specification_input
         }));
-    }, [specification_input, meta_input]);
-
-    // console.log(meta_input);
+    }, [specification_input]);
 
     const handleMulipleSelect = (e) => {
         let value = [];
@@ -1193,73 +1165,66 @@ const ProductEdit = () => {
                                             <h5>Product SEO Friendly Info</h5>
                                         </div>
                                         <div className="card-body">
-                                            <div>
-                                                {meta_input.map((spec, index) => (
-                                                    <div key={index} className="row specification-field d-flex align-items-baseline mb-2">
-                                                        <div  className="col-md-5">
-                                                            <label className={"w-100 mt-4"}>
-                                                                <p>Mata Content</p>
-                                                                <input
-                                                                    type="text"
-                                                                    name="name"
-                                                                    value={spec.name}
-                                                                    className="form-control me-2"
-                                                                    placeholder={"Enter Product Meta Name"}
-                                                                    onChange={(e) => handleMetaInput(index, 'name', e.target.value)}
-                                                                />
-                                                                <p className={"login-error-msg"}>
-                                                                    <small>
-                                                                        {errors.name != undefined
-                                                                            ? errors.name[0]
-                                                                            : null}
-                                                                    </small>
-                                                                </p>
-                                                            </label>
-                                                        </div>
-                                                        
-                                                        <div className="col-md-6">
-                                                            <label className={"w-100 mt-4"}>
-                                                                <p>Mata Content</p>
-                                                                <input
-                                                                    type="text"
-                                                                    name="content"
-                                                                    value={spec.content}
-                                                                    className="form-control me-2"
-                                                                    placeholder={"Enter Product Meta Content"}
-                                                                    onChange={(e) => handleMetaInput(index, 'content', e.target.value)}
-                                                                />
-                                                                <p className={"login-error-msg"}>
-                                                                    <small>
-                                                                        {errors.name != undefined
-                                                                            ? errors.name[0]
-                                                                            : null}
-                                                                    </small>
-                                                                </p>
-                                                            </label>
-                                                        </div>
-                                                        <div className="col-md-1">
-                                                            {spec.isNew &&(
-                                                            <button
-                                                                className={"btn btn-danger"}
-                                                                onClick={() =>
-                                                                    handleMetaRemove(index)
-                                                                }
-                                                            >
-                                                                <i className="fa-solid fa-minus" />
-                                                            </button>
-                                                            )}
-                                                        </div>                                                        
-                                                    </div>
-                                                ))}
-                                            </div>
                                             <div className="row">
-                                                <div className="col-md-12 text-center">
-                                                    <button
-                                                        className={"btn btn-success"}
-                                                        onClick={handleMetaFields}
-                                                    >
-                                                        <i className="fa-solid fa-plus" />
-                                                    </button>
+                                                <div className="col-md-6">
+                                                    <label className={"w-100 mt-4"}>
+                                                        <p>Mata Title</p>
+                                                        <input
+                                                            className={"form-control mt-2"}
+                                                            type="text"
+                                                            name="meta_title"
+                                                            value={input.meta_title}
+                                                            onChange={handleInput}
+                                                            placeholder={"Enter Product Meta Title"}
+                                                        />
+                                                        <p className={"login-error-msg"}>
+                                                            <small>
+                                                                {errors.name != undefined
+                                                                    ? errors.name[0]
+                                                                    : null}
+                                                            </small>
+                                                        </p>
+                                                    </label>
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <label className={"w-100 mt-4"}>
+                                                        <p>Mata Keyword</p>
+                                                        <input
+                                                            className={"form-control mt-2"}
+                                                            type="text"
+                                                            name="meta_keywords"
+                                                            value={input.meta_keywords}
+                                                            onChange={handleInput}
+                                                            placeholder={"Enter Product Meta Keyword"}
+                                                        />
+                                                        <p className={"login-error-msg"}>
+                                                            <small>
+                                                                {errors.name != undefined
+                                                                    ? errors.name[0]
+                                                                    : null}
+                                                            </small>
+                                                        </p>
+                                                    </label>
+                                                </div>
+                                                <div className="col-md-12">
+                                                    <label className={"w-100 mt-4"}>
+                                                        <p>Mata Description</p>
+                                                        <input
+                                                            className={"form-control mt-2"}
+                                                            type="text"
+                                                            name="meta_description"
+                                                            value={input.meta_description}
+                                                            onChange={handleInput}
+                                                            placeholder={"Enter Product Meta Description"}
+                                                        />
+                                                        <p className={"login-error-msg"}>
+                                                            <small>
+                                                                {errors.name != undefined
+                                                                    ? errors.name[0]
+                                                                    : null}
+                                                            </small>
+                                                        </p>
+                                                    </label>
                                                 </div>
                                             </div>
                                         </div>

@@ -245,7 +245,7 @@ const BarCodeGenerate = () => {
       return componentRef.current;
     },
     documentTitle: "Bar Codes",
-<<<<<<< HEAD
+
     // pageStyle: `
     // @page {
     //   size: 55mm 25mm; /* Custom receipt label size */
@@ -265,13 +265,13 @@ const BarCodeGenerate = () => {
     //     font-family: Arial, sans-serif;
     //   }
     // }`
-=======
+
     pageStyle: `
     @page {
       size: 55mm 25mm; /* Custom receipt label size */
       margin: 5mm;
     }`
->>>>>>> e196c5f1751176223a140f46f8c762173d9a6c6f
+
 
     // @media print {
     //   body {
