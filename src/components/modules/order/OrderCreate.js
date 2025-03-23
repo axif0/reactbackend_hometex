@@ -70,6 +70,8 @@ const OrderCreate = () => {
     return allProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   };
 
+  
+
   const [products, setProducts] = useState([]);
   const [carts, setCarts] = useState({});
   const [cartItems, setCartItems] = useState([]);
@@ -86,6 +88,8 @@ const OrderCreate = () => {
     trx_id: "",
   });
 
+  console.log(cartItems);
+
   const [order, setOrder] = useState({});
 
   const handleOrderPlace = () => {
@@ -96,7 +100,7 @@ const OrderCreate = () => {
     axios
       .post(
         `${Constants.BASE_URL}/order`,
-        { carts: carts, orderSummary: orderSummary, shop_id: shop_id },
+        { carts: cartItems, orderSummary: orderSummary, shop_id: shop_id },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -138,6 +142,7 @@ const OrderCreate = () => {
       customer_id: customer.id,
     }));
   };
+
   const handleCart = (id) => {
     products.map((product, index) => {
       if (product.id == id) {
@@ -225,14 +230,14 @@ const OrderCreate = () => {
     setProductWithAttributes(product);
   };
 
-  console.log("=>>>", productWithAttributes);
+  // console.log("=>>>", productWithAttributes);
   const handleCartWithoutAttributeWise = (product) => {
     let other_fields = {
       productId: +product.id,
       attributesId: 0,
       name: product.name,
       attribute_name: "",
-      original_price: product.price,
+      original_price: product.original_price,
       price: product.sell_price.price,
       discount_price: product.sell_price.discount,
       sku: product.sku,
@@ -298,10 +303,11 @@ const OrderCreate = () => {
 
     if (cartItems.length > 0) {
       cartItems.map((val, index) => {
+       console.log(val);
         items += val.quantity;
-        amount += val.price * val.quantity;
+        amount += val.original_price * val.quantity;
         discount += val.discount_price * val.quantity;
-        pay_able += val.price * val.quantity;
+        pay_able += val.original_price * val.quantity;
       });
     }
     setOrderSummary((prevState) => ({
@@ -309,8 +315,8 @@ const OrderCreate = () => {
       items: items,
       amount: amount,
       discount: discount,
-      pay_able: pay_able,
-      paid_amount: pay_able,
+      pay_able: pay_able - discount,
+      paid_amount: pay_able - discount,
     }));
   };
 
@@ -465,7 +471,7 @@ const OrderCreate = () => {
 
   // console.log(productWithAttributes.attributes, 'productWithAttributes___')
 
-  console.log(cartItems, "my cart");
+  // console.log(cartItems, "my cart");
 
   return (
     <>
@@ -887,11 +893,12 @@ const OrderCreate = () => {
         onHide={() => setModalShow(false)}
         setModalShow={setModalShow}
       />
+
       <ShowOrderConfirmation
         show={showOrderConfirmationModal}
         onHide={() => setShowOrderConfirmationModal(false)}
         order_summary={orderSummary}
-        carts={carts}
+        carts={cartItems}
         is_loading={isLoading}
         handleOrderPlace={handleOrderPlace}
         handleOrderSummaryInput={handleOrderSummaryInput}
