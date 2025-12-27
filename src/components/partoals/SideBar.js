@@ -18,6 +18,15 @@ export default function SideBar() {
                             <div className="sb-nav-link-icon"><i className="fas fa-tachometer-alt"></i></div>
                             Dashboard
                         </Link>
+                        
+                        {/* Approvals Section */}
+                        {(!productExist && !saleExist) && (
+                            <Link className="nav-link" to="/approvals">
+                                <div className="sb-nav-link-icon"><i className="fas fa-clipboard-check"></i></div>
+                                Approvals
+                            </Link>
+                        )}
+                        
                         {/* Report start */}
                         {
                                     (!productExist && !saleExist)  &&

@@ -19,10 +19,12 @@ const BarCodeGenerate = () => {
     category_id: "",
     sub_category_id: "",
     child_sub_category_id: "",
+    product_id: "",
     attribute_value_id: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState([]);
+  const [productList, setProductList] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [childSubCategories, setChildSubCategories] = useState([]);
@@ -56,6 +58,15 @@ const BarCodeGenerate = () => {
       let category_id = parseInt(e.target.value);
       if (!Number.isNaN(category_id)) {
         getSubCategories(e.target.value);
+        setSubCategories([]);
+        setChildSubCategories([]);
+        setProductList([]);
+        setInput((prevState) => ({
+          ...prevState,
+          sub_category_id: "",
+          child_sub_category_id: "",
+          product_id: "",
+        }));
       }
     }
 
@@ -63,6 +74,24 @@ const BarCodeGenerate = () => {
       let sub_category_id = parseInt(e.target.value);
       if (!Number.isNaN(sub_category_id)) {
         getChildSubCategories(e.target.value);
+        setChildSubCategories([]);
+        setProductList([]);
+        setInput((prevState) => ({
+          ...prevState,
+          child_sub_category_id: "",
+          product_id: "",
+        }));
+      }
+    }
+
+    if (e.target.name === "child_sub_category_id") {
+      let child_sub_category_id = parseInt(e.target.value);
+      if (!Number.isNaN(child_sub_category_id)) {
+        getProductsByChildSubCategory(e.target.value);
+        setInput((prevState) => ({
+          ...prevState,
+          product_id: "",
+        }));
       }
     }
 
@@ -77,6 +106,23 @@ const BarCodeGenerate = () => {
     );
 
     setSelectedAttribute(selectedAttr || null);
+  };
+
+  const handleResetFilter = () => {
+    setInput({
+      name: "",
+      category_id: "",
+      sub_category_id: "",
+      child_sub_category_id: "",
+      product_id: "",
+      attribute_value_id: "",
+    });
+    setSubCategories([]);
+    setChildSubCategories([]);
+    setProductList([]);
+    setProducts([]);
+    setAttributes([]);
+    setSelectedAttribute(null);
   };
 
   // const handleProductSearch = async () => {
@@ -124,10 +170,19 @@ const BarCodeGenerate = () => {
     setIsLoading(true);
   
     try {
-      const response = await axios.get(
-        `${Constants.BASE_URL}/get-product-list-for-bar-code?name=${input?.name}&category_id=${input?.category_id}&sub_category_id=${input?.sub_category_id}&child_sub_category_id=${input?.child_sub_category_id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      let url = `${Constants.BASE_URL}/get-product-list-for-bar-code?`;
+      
+      // If product_id is selected, fetch only that product
+      if (input.product_id) {
+        url += `product_id=${input.product_id}`;
+      } else {
+        // Otherwise, use the existing filters
+        url += `name=${input?.name}&category_id=${input?.category_id}&sub_category_id=${input?.sub_category_id}&child_sub_category_id=${input?.child_sub_category_id}`;
+      }
+      
+      const response = await axios.get(url, { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
   
       setProducts(response.data.data);
       
@@ -214,6 +269,23 @@ const BarCodeGenerate = () => {
       })
       .then((res) => {
         setChildSubCategories(res.data);
+      });
+  };
+
+  const getProductsByChildSubCategory = (child_sub_category_id) => {
+    const token = localStorage.getItem("token");
+    axios
+      .get(`${Constants.BASE_URL}/get-product-list-for-bar-code?child_sub_category_id=${child_sub_category_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
+        setProductList(res.data.data || []);
+      })
+      .catch((err) => {
+        console.error("Error fetching products:", err);
+        setProductList([]);
       });
   };
 
@@ -373,7 +445,28 @@ const BarCodeGenerate = () => {
                 </div>
                 <div className="col-md-3">
                   <label className="w-100 mt-4 mt-md-0">
-                    <p>Product Name</p>
+                    <p>Select Product</p>
+                    <select
+                      className={"form-select mt-2"}
+                      name={"product_id"}
+                      value={input.product_id}
+                      onChange={handleInput}
+                      disabled={!input.child_sub_category_id || productList.length === 0}
+                    >
+                      <option value="">Select Product</option>
+                      {productList.map((product, index) => (
+                        <option value={product.id} key={index}>
+                          {product.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div className="row">
+                <div className="col-md-3">
+                  <label className="w-100 mt-4 mt-md-0">
+                    <p>Search By Product Name</p>
                     <input
                       className={"form-control mt-2"}
                       type={"search"}
@@ -430,6 +523,17 @@ const BarCodeGenerate = () => {
                           : "Search",
                       }}
                     />
+                  </div>
+                </div>
+                <div className="col-md-2">
+                  <div className="d-grid mt-4">
+                    <button
+                      onClick={handleResetFilter}
+                      className={"btn btn-secondary"}
+                    >
+                      <i className="fa-solid fa-filter-circle-xmark me-2"></i>
+                      Reset Filter
+                    </button>
                   </div>
                 </div>
                   <div className="col-md-1">

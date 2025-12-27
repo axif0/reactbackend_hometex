@@ -31,6 +31,7 @@ import PriceFormulaList from "../modules/priceFormula/PriceFormulaList";
 import AddPriceFormula from "../modules/priceFormula/AddPriceFormula";
 import PriceFormulaEdit from "../modules/priceFormula/PriceFormulaEdit";
 import ProductEdit from "../modules/product/ProductEdit";
+import ProductEditNew from "../modules/product/ProductEditNew";
 import CsvProduct from "../modules/product/CsvProduct";
 import ChildSubCategoryList from "../modules/childSubCategory/ChildSubCategoryList";
 import ChildSubCategoryEdit from "../modules/childSubCategory/ChildSubCategoryEdit";
@@ -42,6 +43,7 @@ import AddEcommerceMenu from "../modules/settings/AddEcommerceMenu";
 import EditEcommerceMenu from "../modules/settings/EditEcommerceMenu";
 import EcommerceMenuList from "../modules/settings/EcommerceMenuList";
 import BarCodeGenerate from "../modules/bar_code/BarCodeGenerate";
+import Approvals from "../modules/approvals/Approvals";
 
 const ProjectRouter = [
   {
@@ -133,6 +135,10 @@ const ProjectRouter = [
         element: <ProductEdit/>,
       },
       {
+        path: "/product/edit-new/:id",
+        element: <ProductEditNew/>,
+      },
+      {
         path: "/product/transfer/list",
         element: <ProductTransferList/>,
       },
@@ -211,6 +217,10 @@ const ProjectRouter = [
       {
         path: "/ecommerce/menu-edit",
         element: <EditEcommerceMenu/>,
+      },
+      {
+        path: "/approvals",
+        element: <Approvals/>,
       },
       {
         path: "/error-500",

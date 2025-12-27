@@ -87,7 +87,7 @@ const ProductEdit = () => {
         const config = {
             method: "get",
             maxBodyLength: Infinity,
-            url: `${Constants.BASE_URL}/product/${params.id}`,
+            url: `${Constants.BASE_URL}/products/${params.id}`,
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -96,83 +96,93 @@ const ProductEdit = () => {
         axios
             .request(config)
             .then((response) => {
-                const costValue = response.data.data.cost.replace(/[৳,]/g, "");
-                const priceValue = response.data.data.price.replace(/[৳,]/g, "");
-                const shopData = response.data.data.shops;
-
-                const transformedSpecifications = response.data.data.specifications.map(spec => ({
+                const data = response.data.data;
+                
+                // Transform specifications
+                const transformedSpecifications = data.specifications?.map(spec => ({
                     value: spec.value,
                     name: spec.name,
-                }));
+                })) || [];
 
-                setSpecificationFiled(transformedSpecifications || []);
-                setSpecification_input(transformedSpecifications || []);
+                setSpecificationFiled(transformedSpecifications);
+                setSpecification_input(transformedSpecifications);
 
-                setAttributeField(response.data.data.attributes.map(attr => ({
+                // Transform attributes
+                setAttributeField(data.attributes?.map(attr => ({
                     ...attr,
                     shop_quantities: attr.shop_quantities || []
-                })));
+                })) || []);
 
+                // Get shop data from inventory
+                const shopData = data.inventory?.stock_by_location || [];
                 const uniqueShopData = [];
                 const shopIds = new Set();
 
                 shopData.forEach((shop) => {
                     if (!shopIds.has(shop.shop_id)) {
-                        uniqueShopData.push(shop);
+                        uniqueShopData.push({
+                            shop_id: shop.shop_id,
+                            shop_name: shop.shop_name,
+                            shop_quantity: shop.quantity
+                        });
                         shopIds.add(shop.shop_id);
                     }
                 });
 
-                const discountPercentValue = parseFloat(response.data.data.discount_percent);
-                const discountFixedValue = parseFloat(response.data.data.discount_fixed);
-                const discountEndDate = response.data.data.discount_end ? new Date(response.data.data.discount_end) : null;
-                const formattedDiscountEnd = discountEndDate ? discountEndDate.toISOString().slice(0, 16) : null;
-                const discountStartDate = response.data.data.discount_start ? new Date(response.data.data.discount_start) : null;
+                // Extract discount dates
+                const discountStartDate = data.pricing?.discount?.start_date ? new Date(data.pricing.discount.start_date) : null;
                 const formattedDiscountStart = discountStartDate ? discountStartDate.toISOString().slice(0, 16) : null;
+                const discountEndDate = data.pricing?.discount?.end_date ? new Date(data.pricing.discount.end_date) : null;
+                const formattedDiscountEnd = discountEndDate ? discountEndDate.toISOString().slice(0, 16) : null;
 
-                const productAttributes = response.data.data.attributes ? [response.data.data.attributes] : [];
-
+                // Build shop quantities object
                 const shopQuantities = {};
                 uniqueShopData.forEach((shop) => {
                     shopQuantities[shop.shop_id] = shop.shop_quantity;
                 });
+
+                // Get discount values
+                const discountType = data.pricing?.discount?.type || 'percentage';
+                const discountValue = data.pricing?.discount?.value || 0;
+
                 setInput({
-                    attributes: response.data.data.attributes,
+                    attributes: data.attributes || [],
                     shops: uniqueShopData,
-                    name: response.data.data.name,
-                    slug: response.data.data.slug,
-                    category_id: response.data.data.category?.id,
-                    sub_category_id: response.data.data.sub_category?.id,
-                    child_sub_category_id: response.data.data.child_sub_category?.id,
-                    country_id: response.data.data.country?.id,
-                    brand_id: response.data.data.brand?.id,
-                    supplier_id: response.data.data.supplier?.id,
-                    description: response.data.data.description,
-                    cost: costValue ? Number(costValue) : null,
-                    price: priceValue ? Number(priceValue) : null,
-                    isFeatured: response.data.data.isFeatured === 1 ? true : false,
-                    isNew: response.data.data.isNew === 1 ? true : false,
-                    isTrending: response.data.data.isTrending === 1 ? true : false,
-                    sku: response.data.data.sku,
+                    name: data.name,
+                    slug: data.slug,
+                    category_id: data.category?.id,
+                    sub_category_id: data.sub_category?.id,
+                    child_sub_category_id: data.child_sub_category?.id,
+                    country_id: data.country_of_origin?.id,
+                    brand_id: data.brand?.id,
+                    supplier_id: data.supplier?.id,
+                    description: data.description,
+                    cost: data.pricing?.cost_price || 0,
+                    price: data.pricing?.regular_price || 0,
+                    isFeatured: data.badges?.is_featured === true,
+                    isNew: data.badges?.is_new === true,
+                    isTrending: data.badges?.is_trending === true,
+                    sku: data.sku,
                     discount_start: formattedDiscountStart,
                     discount_end: formattedDiscountEnd,
-                    discount_fixed: discountFixedValue,
-                    discount_percent: discountPercentValue,
-                    price_formula: response.data.data.price_formula,
-                    field_limit: response.data.data.field_limit,
-                    status: response.data.data.status == "Active" ? 1 : 0,
-                    meta_title: response?.data?.data?.meta_title,
-                    meta_keywords: response?.data?.data?.meta_keywords,
-                    meta_description: response?.data?.data?.meta_description,
+                    discount_fixed: discountType === 'fixed' ? discountValue : 0,
+                    discount_percent: discountType === 'percentage' ? discountValue : 0,
+                    price_formula: data.price_formula,
+                    field_limit: data.field_limit,
+                    status: data.status === "active" ? 1 : 0,
+                    meta_title: data.seo?.meta_title,
+                    meta_keywords: Array.isArray(data.seo?.meta_keywords) ? data.seo.meta_keywords.join(', ') : '',
+                    meta_description: data.seo?.meta_description,
                 });
-                setAttributes(productAttributes);
+                
+                setAttributes(data.attributes ? [data.attributes] : []);
                 setQuantities(shopQuantities);
                 setSelectedShops(uniqueShopData.map((shop) => ({
                     value: shop.shop_id,
                     label: shop.shop_name,
                     quantity: shop.shop_quantity
                 })));
-                setAttributeField(response.data.data.attributes);
+                setAttributeField(data.attributes || []);
             })
             .catch((error) => {
                 console.error(error);

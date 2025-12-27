@@ -35,9 +35,10 @@ const ProductList = () => {
     setIsLoading(true);
     const token = localStorage.getItem("token");
 
-    let url = `${Constants.BASE_URL}/product?page=1&search=${input.search}&order_by=${input.order_by}&direction=${input.direction}&paginate=yes`;
+    const searchParam = input.search ? `&search=${input.search}` : '';
+    let url = `${Constants.BASE_URL}/products?page=1${searchParam}&order_by=${input.order_by}&direction=${input.direction}&paginate=yes`;
     if(paginate !== null){
-      url = `${paginate}&search=${input.search}&order_by=${input.order_by}&direction=${input.direction}&paginate=yes`
+      url = `${paginate}${searchParam}&order_by=${input.order_by}&direction=${input.direction}&paginate=yes`
     }
 
     axios
@@ -51,7 +52,7 @@ const ProductList = () => {
       )
       .then((res) => {
         setPaginateLink(res.data.meta);
-        setProducts(res.data.data);
+        setProducts(Array.isArray(res.data.data?.products) ? res.data.data.products : []);
         setIsLoading(false);
       })
       .catch((error) => {
@@ -368,7 +369,7 @@ const ProductList = () => {
                                     <i className="fa-solid fa-eye"></i>
                                   </button>
                                 </Link>
-                                <Link to={`/product/edit/${product.id}`}>
+                                <Link to={`/product/edit-new/${product.id}`}>
                                   <button
                                     className={"btn btn-sm my-1 btn-warning"}
                                   >
