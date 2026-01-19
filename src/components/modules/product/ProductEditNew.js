@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
 import Swal from "sweetalert2";
-import Constants from "../../../Constants";
 import Breadcrumb from "../../partoals/Breadcrumb";
 import CardHeader from "../../partoals/miniComponents/CardHeader";
 import Loader from "../../partoals/miniComponents/Loader";
@@ -16,21 +14,7 @@ import ShippingTab from "./editTabs/ShippingTab";
 import SpecificationsTab from "./editTabs/SpecificationsTab";
 import AdditionalInfoTab from "./editTabs/AdditionalInfoTab";
 import RelationsTab from "./editTabs/RelationsTab";
-
-// Create axios instance with authentication
-const apiClient = axios.create({
-    baseURL: Constants.BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    }
-});
-
-// Add token if available
-const token = localStorage.getItem('token');
-if (token) {
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-}
+import { fetchProduct, updateProduct, parseApiError } from "../../../services/productApi";
 
 const ProductEditNew = () => {
     const { id } = useParams();
@@ -40,117 +24,121 @@ const ProductEditNew = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [productData, setProductData] = useState(null);
+    const [apiErrors, setApiErrors] = useState({});
 
+    // Restore saved tab on mount
     useEffect(() => {
-        // Restore saved tab on mount
         const savedTab = sessionStorage.getItem('productEditActiveTab');
         if (savedTab) {
-            console.log('Restoring tab:', savedTab);
             setActiveTab(savedTab);
             sessionStorage.removeItem('productEditActiveTab');
         }
     }, []);
 
-    useEffect(() => {
-        const fetchProduct = async () => {
-            try {
-                setIsLoading(true);
-                const response = await apiClient.get(`/products/${id}`);
-                console.log("Product fetched successfully:", response.data);
-                setProductData(response.data.data);
-            } catch (error) {
-                console.error("Error fetching product:", error);
-                console.error("Error details:", error.response?.data);
-                
-                // Show error but keep form visible with empty/default data
-                Swal.fire({
-                    icon: "warning",
-                    title: "Backend Error",
-                    html: `
-                        <p><strong>Message:</strong> ${error.response?.data?.message || 'Failed to load product'}</p>
-                        <p class="text-danger"><small>${error.response?.data?.errors || ''}</small></p>
-                        <p class="mt-3"><strong>This is a backend SQL issue that needs to be fixed.</strong></p>
-                        <p>The form will display with default values.</p>
-                    `,
-                    confirmButtonText: 'Continue Anyway',
-                    width: 600,
-                });
-                
-                // Set default empty product data to allow form to render
-                setProductData({
-                    id: id,
-                    name: "Loading failed - Backend error",
-                    sku: "",
-                    slug: "",
-                    description: "",
-                    short_description: "",
-                    status: "active",
-                    type: "simple",
-                    category: null,
-                    sub_category: null,
-                    child_sub_category: null,
-                    brand: null,
-                    country_of_origin: null,
-                    tags: [],
-                    pricing: {
-                        cost_price: 0,
-                        regular_price: 0,
-                        sale_price: null,
-                        discount: { type: "percentage", value: 0 },
-                        price_range: { min: 0, max: 0 }
-                    },
-                    inventory: {
-                        stock_quantity: 0,
-                        stock_by_location: [],
-                        sold_count: 0
-                    },
-                    variations: [],
-                    has_variations: false,
-                    media: { gallery: [], videos: [] },
-                    seo: {
-                        meta_title: "",
-                        meta_description: "",
-                        meta_keywords: []
-                    }
-                });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchProduct();
+    // Fetch product data
+    const loadProduct = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setApiErrors({});
+            const response = await fetchProduct(id);
+            console.log("Product fetched successfully:", response);
+            setProductData(response.data.product);
+        } catch (error) {
+            console.error("Error fetching product:", error);
+            const parsedError = parseApiError(error);
+            
+            Swal.fire({
+                icon: "warning",
+                title: "Failed to Load Product",
+                html: `<p>${parsedError.message}</p>`,
+                confirmButtonText: 'Continue Anyway',
+            });
+            
+            // Set default empty product data
+            setProductData(getDefaultProductData(id));
+        } finally {
+            setIsLoading(false);
+        }
     }, [id]);
 
+    useEffect(() => {
+        loadProduct();
+    }, [loadProduct]);
+
+    /**
+     * Handle save from any tab
+     * Supports partial updates - only sends changed fields
+     */
     const handleSave = async (updatedData) => {
         try {
-            // Save current tab before reload
+            setIsSaving(true);
+            setApiErrors({});
+            
+            // Save current tab before potential reload
             sessionStorage.setItem('productEditActiveTab', activeTab);
             
             console.log('Sending to API:', JSON.stringify(updatedData, null, 2));
             
-            const response = await apiClient.put(`/product/${id}`, updatedData);
+            const response = await updateProduct(id, updatedData);
             
-            console.log('API Response:', response.data);
+            console.log('API Response:', response);
+
+            // Update local state with new data
+            if (response.data?.product) {
+                setProductData(response.data.product);
+            }
 
             Swal.fire({
                 icon: "success",
                 title: "Success",
-                text: "Product updated successfully. Check console for details.",
-                showConfirmButton: true
+                text: response.message || "Product updated successfully",
+                toast: true,
+                position: "top-end",
+                showConfirmButton: false,
+                timer: 3000,
             });
 
-            // Temporarily disabled reload to see logs
-            // setTimeout(() => {
-            //     window.location.href = window.location.href;
-            // }, 1000);
+            // Show updated fields if available
+            if (response.data?.updated_fields?.length > 0) {
+                console.log("Updated fields:", response.data.updated_fields);
+            }
 
         } catch (error) {
             console.error("Error updating product:", error);
-            Swal.fire({
-                icon: "error",
-                title: "Error",
-                text: error.response?.data?.message || "Failed to update product",
-            });
+            const parsedError = parseApiError(error);
+            
+            setApiErrors(parsedError.errors);
+
+            // Handle validation errors (422)
+            if (parsedError.status === 422 && Object.keys(parsedError.errors).length > 0) {
+                const errorMessages = Object.entries(parsedError.errors)
+                    .map(([field, messages]) => `<b>${field}:</b> ${messages[0]}`)
+                    .join('<br>');
+                
+                Swal.fire({
+                    icon: "error",
+                    title: "Validation Failed",
+                    html: errorMessages,
+                });
+            } else if (parsedError.status === 401) {
+                // Session expired - redirect to login
+                Swal.fire({
+                    icon: "warning",
+                    title: "Session Expired",
+                    text: "Please login again.",
+                    confirmButtonText: "Login",
+                }).then(() => {
+                    window.location.href = "/login";
+                });
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: parsedError.message,
+                });
+            }
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -253,6 +241,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             {activeTab === "pricing" && (
@@ -260,6 +249,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             {activeTab === "inventory" && (
@@ -267,6 +257,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             {activeTab === "shipping" && (
@@ -274,6 +265,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             {activeTab === "specifications" && (
@@ -281,6 +273,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             {activeTab === "additional" && (
@@ -288,6 +281,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             {activeTab === "relations" && (
@@ -295,6 +289,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             {activeTab === "variations" && (
@@ -302,6 +297,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             {activeTab === "media" && (
@@ -309,6 +305,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             {activeTab === "seo" && (
@@ -316,6 +313,7 @@ const ProductEditNew = () => {
                                     data={productData} 
                                     onSave={handleSave}
                                     isSaving={isSaving}
+                                    errors={apiErrors}
                                 />
                             )}
                             </div>
@@ -326,5 +324,55 @@ const ProductEditNew = () => {
         </>
     );
 };
+
+/**
+ * Default product data structure for when loading fails
+ */
+const getDefaultProductData = (id) => ({
+    id: id,
+    name: "",
+    sku: "",
+    slug: "",
+    description: "",
+    short_description: "",
+    status: "active",
+    type: "simple",
+    category: null,
+    sub_category: null,
+    child_sub_category: null,
+    brand: null,
+    country_of_origin: null,
+    tags: [],
+    badges: {
+        is_featured: false,
+        is_new: false,
+        is_trending: false,
+        is_bestseller: false,
+        is_on_sale: false,
+    },
+    pricing: {
+        cost_price: 0,
+        regular_price: 0,
+        sale_price: null,
+        discount: { type: "percentage", value: 0 },
+    },
+    inventory: {
+        stock_quantity: 0,
+        stock_status: "in_stock",
+        low_stock_threshold: 10,
+        stock_by_location: [],
+    },
+    shipping: {
+        weight: 0,
+        dimensions: { length: 0, width: 0, height: 0 },
+    },
+    specifications: [],
+    media: { gallery: [], videos: [] },
+    seo: {
+        meta_title: "",
+        meta_description: "",
+        meta_keywords: [],
+    },
+});
 
 export default ProductEditNew;
