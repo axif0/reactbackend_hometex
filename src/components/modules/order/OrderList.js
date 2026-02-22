@@ -185,8 +185,12 @@ function OrderList() {
                                           <td className="align-middle">{startFrom + index}</td>
                                             <td className="align-middle">
                                               <p>Order Number: <strong>{order.order_number}</strong></p>
-                                              <p>Order Status: {order.order_status_string}</p>
-                                              <p>Payment Status: {order.payment_status}</p>
+                                              <p className="mb-1">
+                                                Order: <span className={`badge ${order.order_status === 3 ? 'bg-success' : order.order_status === 2 ? 'bg-info' : 'bg-warning text-dark'}`}>{order.order_status_string}</span>
+                                              </p>
+                                              <p className="mb-0">
+                                                Payment: <span className={`badge ${order.payment_status === 'Paid' ? 'bg-success' : order.payment_status === 'Partially Paid' ? 'bg-warning text-dark' : 'bg-danger'}`}>{order.payment_status}</span>
+                                              </p>
                                             </td>
                                             <td className="align-middle">
                                               <p>{order.customer_name}</p>

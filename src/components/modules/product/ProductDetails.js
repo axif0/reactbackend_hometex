@@ -6,39 +6,73 @@ import { Link, useParams } from "react-router-dom";
 import Constants from "../../../Constants";
 import GlobalFunction from "../../../assets/GlobalFunction";
 
+function normalizeProductFromApi(raw) {
+  if (!raw || typeof raw !== "object") return raw;
+  if (raw.name !== undefined && raw.cost !== undefined) return raw;
+  const p = raw.pricing || {};
+  const d = p.discount || {};
+  const inv = raw.inventory || {};
+  const media = raw.media || {};
+  const badges = raw.badges || {};
+  const pm = p.profit_margin || {};
+  return {
+    ...raw,
+    cost: raw.cost ?? p.cost_price,
+    price: raw.price ?? p.regular_price,
+    sell_price: raw.sell_price ?? (p.currency_symbol != null ? { price: p.final_price, symbol: p.currency_symbol, discount: d.amount } : undefined),
+    discount_percent: raw.discount_percent ?? d.percent ?? d.value,
+    discount_fixed: raw.discount_fixed ?? d.fixed_amount,
+    discount_start: raw.discount_start ?? d.start_date,
+    discount_end: raw.discount_end ?? d.end_date,
+    discount_remaining_days: raw.discount_remaining_days ?? d.remaining_days,
+    stock: raw.stock ?? inv.stock_quantity,
+    profit: raw.profit ?? pm.amount,
+    profit_percentage: raw.profit_percentage ?? pm.percentage,
+    isFeatured: raw.isFeatured ?? badges.is_featured ? 1 : 0,
+    isNew: raw.isNew ?? badges.is_new ? 1 : 0,
+    isTrending: raw.isTrending ?? badges.is_trending ? 1 : 0,
+    photos: raw.photos ?? (Array.isArray(media.gallery) ? media.gallery.map((g) => ({ photo: g.url })) : []),
+    primary_photo: raw.primary_photo ?? media.primary_image?.url,
+    country: raw.country ?? raw.country_of_origin,
+    shops: raw.shops ?? (Array.isArray(inv.stock_by_location) ? inv.stock_by_location.map((s) => ({ shop_name: s.shop_name, shop_quantity: s.quantity })) : []),
+  };
+}
+
 const ProductDetails = () => {
-  const params = useParams([]);
-  const [product, setProduct] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const params = useParams();
+  const [product, setProduct] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const getProduct = () => {
     setIsLoading(true);
+    setError(null);
     const token = localStorage.getItem("token");
     axios
       .get(`${Constants.BASE_URL}/product/${params.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
-        setProduct(res.data.data);
+        const data = res.data?.data;
+        const raw = data?.product ?? (data && !data.product ? data : null) ?? res.data?.product ?? null;
+        setProduct(normalizeProductFromApi(raw) || null);
         setIsLoading(false);
       })
-      .catch((error) => {
-        console.log(error);
-        // handle error here, e.g. set an error state or display an error message
+      .catch((err) => {
+        setError(err?.response?.data?.message || err.message || "Failed to load product");
+        setProduct(null);
+        setIsLoading(false);
       });
   };
 
   useEffect(() => {
     getProduct();
-  }, []);
+  }, [params.id]);
 
   const renderAttributeQuantities = () => {
-    if (!product.attributes || product.attributes.length === 0) {
+    if (!product || !product.attributes || product.attributes.length === 0) {
       return <p className="text-gray-600 italic">No attributes found.</p>;
     }
-  
     return product.attributes.map((attribute, index) => (
       <div key={index} className="mb-6 p-4 shadow-lg rounded-lg bg-white">
         <h5 className="text-lg font-semibold text-indigo-600 mb-2">
@@ -56,6 +90,32 @@ const ProductDetails = () => {
     ));
   };
   
+
+  if (isLoading) {
+    return (
+      <>
+        <Breadcrumb title={"Product Details"} />
+        <div className="card">
+          <div className="card-body text-center py-5">
+            <div className="spinner-border text-primary" role="status" />
+            <p className="mt-2 mb-0">Loading product...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+  if (error || !product) {
+    return (
+      <>
+        <Breadcrumb title={"Product Details"} />
+        <div className="card">
+          <div className="card-body text-center py-5">
+            <p className="text-danger mb-0">{error || "Product not found."}</p>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -149,10 +209,10 @@ const ProductDetails = () => {
                           </tr>
                           <tr>
                             <th>Updated By</th>
-                            <td>{product.updated_BY?.name}</td>
+                            <td>{product.updated_by?.name}</td>
                           </tr>
                           <tr>
-                            <th>Creayed At</th>
+                            <th>Created At</th>
                             <td>{product?.created_at}</td>
                           </tr>
                           <tr>

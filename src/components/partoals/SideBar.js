@@ -141,6 +141,19 @@ export default function SideBar() {
                                 <Link className="nav-link" to="/employee/create">Add Employee</Link>
                             </nav>
                         </div>
+                        <div className="sb-sidenav-menu-heading">Soon</div>
+                        <span className="nav-link d-flex align-items-center justify-content-between" style={{ cursor: "default", opacity: 0.85 }}>
+                            <span><div className="sb-nav-link-icon"><i className="fas fa-gift"></i></div>Gift</span>
+                            <span className="badge bg-secondary">Soon</span>
+                        </span>
+                        <span className="nav-link d-flex align-items-center justify-content-between" style={{ cursor: "default", opacity: 0.85 }}>
+                            <span><div className="sb-nav-link-icon"><i className="fas fa-ticket-alt"></i></div>Coupons</span>
+                            <span className="badge bg-secondary">Soon</span>
+                        </span>
+                        <span className="nav-link d-flex align-items-center justify-content-between" style={{ cursor: "default", opacity: 0.85 }}>
+                            <span><div className="sb-nav-link-icon"><i className="fas fa-image"></i></div>Banners</span>
+                            <span className="badge bg-secondary">Soon</span>
+                        </span>
                         <div className="sb-sidenav-menu-heading">Management</div>
                         <Link className="nav-link collapsed" to="#" data-bs-toggle="collapse" data-bs-target="#collapseLayouts" aria-expanded="false" aria-controls="collapseLayouts">
                             <div className="sb-nav-link-icon"><i className="fas fa-columns"></i></div>

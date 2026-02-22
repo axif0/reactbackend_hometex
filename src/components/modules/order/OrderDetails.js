@@ -9,31 +9,207 @@ import GlobalFunction from "../../../assets/GlobalFunction";
 import PrintInvoice from "./PrintInvoice";
 import GiftInvoicePrint from "./GiftInvoicePrint";
 
+const CANCELLED = 4;
+
 const OrderDetails = () => {
   const params = useParams();
   const [order, setOrder] = useState();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTaxType, setSelectedTaxType] = useState(0);
+  const [editPaidAmount, setEditPaidAmount] = useState("");
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [addressForm, setAddressForm] = useState({});
+  const [addressSaving, setAddressSaving] = useState(false);
+  const [addItemProductId, setAddItemProductId] = useState("");
+  const [addItemQuantity, setAddItemQuantity] = useState(1);
+  const [addItemAttributeValueId, setAddItemAttributeValueId] = useState("");
+  const [productAttributes, setProductAttributes] = useState([]);
+  const [loadingAttributes, setLoadingAttributes] = useState(false);
+  const [addItemSaving, setAddItemSaving] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [editQuantities, setEditQuantities] = useState({});
+  const [cancelling, setCancelling] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+
+  const token = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+  const base = Constants.BASE_URL;
+  const id = params.id;
+  const isCancelled = order?.order_status === CANCELLED;
 
   const getOrderDetails = () => {
     setIsLoading(true);
-    const token = localStorage.getItem("token");
+    setLoadError(null);
+    const authToken = localStorage.getItem("token");
     axios
       .get(`${Constants.BASE_URL}/order/${params.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${authToken}` },
       })
       .then((res) => {
-        console.log(res);
-        setOrder(res.data.data);
+        const data = res.data?.data ?? res.data;
+        setOrder(data);
+        const qtyMap = {};
+        (data?.order_details ?? []).forEach((d) => { if (d.id != null) qtyMap[d.id] = Number(d.quantity) || 1; });
+        setEditQuantities((prev) => ({ ...prev, ...qtyMap }));
+        setEditPaidAmount(data?.paid_amount != null ? String(data.paid_amount) : "");
+        setAddressForm({
+          shipping_name: data?.shipping_name ?? "",
+          shipping_phone: data?.shipping_phone ?? "",
+          shipping_email: data?.shipping_email ?? "",
+          shipping_address_line_1: data?.shipping_address_line_1 ?? "",
+          shipping_address_line_2: data?.shipping_address_line_2 ?? "",
+          shipping_city: data?.shipping_city ?? "",
+          shipping_state: data?.shipping_state ?? "",
+          shipping_postal_code: data?.shipping_postal_code ?? "",
+          shipping_country: data?.shipping_country ?? "",
+          billing_name: data?.billing_name ?? "",
+          billing_phone: data?.billing_phone ?? "",
+          billing_email: data?.billing_email ?? "",
+          billing_address_line_1: data?.billing_address_line_1 ?? "",
+          billing_address_line_2: data?.billing_address_line_2 ?? "",
+          billing_city: data?.billing_city ?? "",
+          billing_state: data?.billing_state ?? "",
+          billing_postal_code: data?.billing_postal_code ?? "",
+          billing_country: data?.billing_country ?? "",
+        });
         setIsLoading(false);
+      })
+      .catch((err) => {
+        setIsLoading(false);
+        const msg = err.response?.data?.message || err.message || "Request failed";
+        setLoadError(msg);
       });
+  };
+
+  const handleUpdateAddress = (e) => {
+    e.preventDefault();
+    setAddressSaving(true);
+    axios.put(`${base}/order/${id}/address`, addressForm, token())
+      .then((res) => {
+        setOrder(res.data?.data ?? res.data);
+        setAddressSaving(false);
+      })
+      .catch(() => setAddressSaving(false));
+  };
+
+  const handleAddItem = (e) => {
+    e.preventDefault();
+    const pid = Number(addItemProductId);
+    if (!pid || addItemQuantity < 1) return;
+    setAddItemSaving(true);
+    const payload = { product_id: pid, quantity: Number(addItemQuantity) };
+    const attrId = addItemAttributeValueId ? Number(addItemAttributeValueId) : null;
+    if (attrId) payload.attribute_value_id = attrId;
+    axios.post(`${base}/order/${id}/items`, payload, token())
+      .then((res) => {
+        setOrder(res.data?.data ?? res.data);
+        setAddItemProductId("");
+        setAddItemQuantity(1);
+        setAddItemAttributeValueId("");
+        setAddItemSaving(false);
+      })
+      .catch(() => setAddItemSaving(false));
+  };
+
+  const handleUpdateQuantity = (detailId) => {
+    const qty = editQuantities[detailId] ?? order?.order_details?.find((d) => d.id === detailId)?.quantity;
+    const num = Number(qty);
+    if (detailId == null || num < 1) return;
+    setUpdatingId(detailId);
+    axios.put(`${base}/order/${id}/items/${detailId}`, { quantity: num }, { ...token(), headers: { ...token().headers, "Content-Type": "application/json" } })
+      .then((res) => {
+        const raw = res.data;
+        const data = raw?.data ?? raw;
+        if (data && (data.order_details || data.total != null)) {
+          setOrder(data);
+          setEditPaidAmount(data.paid_amount != null ? String(data.paid_amount) : editPaidAmount);
+        }
+        const details = data?.order_details ?? [];
+        const qtyMap = {};
+        details.forEach((d) => { if (d.id != null) qtyMap[d.id] = Number(d.quantity) || 1; });
+        setEditQuantities((prev) => ({ ...prev, ...qtyMap }));
+        setUpdatingId(null);
+      })
+      .catch(() => setUpdatingId(null));
+  };
+
+  const handleRemoveItem = (detailId) => {
+    if (!detailId) return;
+    setRemovingId(detailId);
+    axios.delete(`${base}/order/${id}/items/${detailId}`, token())
+      .then((res) => {
+        setOrder(res.data?.data ?? res.data);
+        setRemovingId(null);
+      })
+      .catch(() => setRemovingId(null));
+  };
+
+  const handleCancelOrder = () => {
+    if (!window.confirm("Cancel this order? Stock will be restored.")) return;
+    setCancelling(true);
+    axios.post(`${base}/order/${id}/cancel`, {}, token())
+      .then((res) => {
+        setOrder(res.data?.data ?? res.data);
+        setCancelling(false);
+      })
+      .catch(() => setCancelling(false));
+  };
+
+  const handleUpdatePayment = () => {
+    const paid = Number(editPaidAmount);
+    if (isNaN(paid) || paid < 0) return;
+    setPaymentSaving(true);
+    axios
+      .put(
+        `${base}/order/${id}/payment`,
+        { paid_amount: paid },
+        token()
+      )
+      .then((res) => {
+        const data = res.data?.data ?? res.data;
+        setOrder(data);
+        setEditPaidAmount(data?.paid_amount != null ? String(data.paid_amount) : "");
+        setPaymentSaving(false);
+      })
+      .catch(() => setPaymentSaving(false));
   };
 
   useEffect(() => {
     getOrderDetails();
   }, []);
+
+  useEffect(() => {
+    const details = order?.order_details ?? [];
+    if (details.length === 0) return;
+    setEditQuantities((prev) => {
+      const next = { ...prev };
+      details.forEach((d) => { if (d.id != null) next[d.id] = Number(d.quantity) ?? prev[d.id] ?? 1; });
+      return next;
+    });
+  }, [order?.order_details]);
+
+  useEffect(() => {
+    const pid = Number(addItemProductId);
+    if (!pid || pid < 1) {
+      setProductAttributes([]);
+      setAddItemAttributeValueId("");
+      return;
+    }
+    setLoadingAttributes(true);
+    axios.get(`${base}/products/${pid}`, token())
+      .then((res) => {
+        const product = res.data?.data?.product ?? res.data?.product ?? res.data;
+        const attrs = product?.attributes ?? [];
+        setProductAttributes(Array.isArray(attrs) ? attrs : []);
+        setAddItemAttributeValueId("");
+        setLoadingAttributes(false);
+      })
+      .catch(() => {
+        setProductAttributes([]);
+        setAddItemAttributeValueId("");
+        setLoadingAttributes(false);
+      });
+  }, [addItemProductId]);
 
   const handleTaxTypeChange = (event) => {
     setSelectedTaxType(event.target.value);
@@ -81,6 +257,31 @@ const OrderDetails = () => {
     };
   };
   
+
+  if (isLoading && !order) {
+    return (
+      <>
+        <Breadcrumb title={"Order Details"} />
+        <div className="row"><div className="col-md-12"><div className="card"><div className="card-body">Loading…</div></div></div></div>
+      </>
+    );
+  }
+  if (!order && loadError) {
+    return (
+      <>
+        <Breadcrumb title={"Order Details"} />
+        <div className="row"><div className="col-md-12"><div className="card"><div className="card-body text-danger">{loadError}</div></div></div></div>
+      </>
+    );
+  }
+  if (!order) {
+    return (
+      <>
+        <Breadcrumb title={"Order Details"} />
+        <div className="row"><div className="col-md-12"><div className="card"><div className="card-body">Order not found.</div></div></div></div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -265,10 +466,172 @@ const OrderDetails = () => {
                   </div>
                 </div>
               </div>
+
+              {!isCancelled && (
               <div className="col-md-12 mt-4">
                 <div className="card h-100">
                   <div className="card-header">
-                    <h5>Order Item Details</h5>
+                    <h5>Edit payment</h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="row align-items-end">
+                      <div className="col-md-2">
+                        <label className="form-label">Paid amount</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          min={0}
+                          max={order?.total ?? 0}
+                          value={editPaidAmount}
+                          onChange={(e) => setEditPaidAmount(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-md-2">
+                        <label className="form-label">Total</label>
+                        <p className="form-control-plaintext mb-0">{GlobalFunction.formatPrice(order?.total)}</p>
+                      </div>
+                      <div className="col-md-2">
+                        <label className="form-label">Due amount</label>
+                        <p className="form-control-plaintext mb-0">
+                          {GlobalFunction.formatPrice(Math.max(0, (order?.total ?? 0) - (Number(editPaidAmount) || 0)))}
+                        </p>
+                      </div>
+                      <div className="col-md-2">
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={paymentSaving}
+                          onClick={handleUpdatePayment}
+                        >
+                          {paymentSaving ? "Saving…" : "Update payment"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              )}
+
+              {!isCancelled && (
+              <div className="col-md-12 mt-4">
+                <div className="card h-100">
+                  <div className="card-header">
+                    <h5>Update address</h5>
+                  </div>
+                  <div className="card-body">
+                    <form onSubmit={handleUpdateAddress}>
+                      <div className="row mb-2">
+                        <div className="col-md-12"><strong>Shipping</strong></div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Name" value={addressForm.shipping_name ?? ""} onChange={(e) => setAddressForm({ ...addressForm, shipping_name: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Phone" value={addressForm.shipping_phone ?? ""} onChange={(e) => setAddressForm({ ...addressForm, shipping_phone: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Email" value={addressForm.shipping_email ?? ""} onChange={(e) => setAddressForm({ ...addressForm, shipping_email: e.target.value })} />
+                        </div>
+                        <div className="col-md-6 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Address line 1" value={addressForm.shipping_address_line_1 ?? ""} onChange={(e) => setAddressForm({ ...addressForm, shipping_address_line_1: e.target.value })} />
+                        </div>
+                        <div className="col-md-6 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Address line 2" value={addressForm.shipping_address_line_2 ?? ""} onChange={(e) => setAddressForm({ ...addressForm, shipping_address_line_2: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="City" value={addressForm.shipping_city ?? ""} onChange={(e) => setAddressForm({ ...addressForm, shipping_city: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="State" value={addressForm.shipping_state ?? ""} onChange={(e) => setAddressForm({ ...addressForm, shipping_state: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Postal / Country" value={addressForm.shipping_postal_code ?? ""} onChange={(e) => setAddressForm({ ...addressForm, shipping_postal_code: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="row mb-2">
+                        <div className="col-md-12"><strong>Billing</strong></div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Name" value={addressForm.billing_name ?? ""} onChange={(e) => setAddressForm({ ...addressForm, billing_name: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Phone" value={addressForm.billing_phone ?? ""} onChange={(e) => setAddressForm({ ...addressForm, billing_phone: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Email" value={addressForm.billing_email ?? ""} onChange={(e) => setAddressForm({ ...addressForm, billing_email: e.target.value })} />
+                        </div>
+                        <div className="col-md-6 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Address line 1" value={addressForm.billing_address_line_1 ?? ""} onChange={(e) => setAddressForm({ ...addressForm, billing_address_line_1: e.target.value })} />
+                        </div>
+                        <div className="col-md-6 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Address line 2" value={addressForm.billing_address_line_2 ?? ""} onChange={(e) => setAddressForm({ ...addressForm, billing_address_line_2: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="City" value={addressForm.billing_city ?? ""} onChange={(e) => setAddressForm({ ...addressForm, billing_city: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="State" value={addressForm.billing_state ?? ""} onChange={(e) => setAddressForm({ ...addressForm, billing_state: e.target.value })} />
+                        </div>
+                        <div className="col-md-4 mt-1">
+                          <input className="form-control form-control-sm" placeholder="Postal / Country" value={addressForm.billing_postal_code ?? ""} onChange={(e) => setAddressForm({ ...addressForm, billing_postal_code: e.target.value })} />
+                        </div>
+                      </div>
+                      <button type="submit" className="btn btn-primary btn-sm" disabled={addressSaving}>{addressSaving ? "Saving…" : "Update address"}</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              )}
+
+              {!isCancelled && (
+              <div className="col-md-12 mt-4">
+                <div className="card h-100">
+                  <div className="card-header">
+                    <h5>Add item to order</h5>
+                  </div>
+                  <div className="card-body">
+                    <form onSubmit={handleAddItem} className="row align-items-end g-2">
+                      <div className="col-auto">
+                        <label className="form-label mb-0">Product ID</label>
+                        <input type="number" className="form-control form-control-sm" min={1} value={addItemProductId} onChange={(e) => setAddItemProductId(e.target.value)} placeholder="Product ID" />
+                      </div>
+                      {productAttributes.length > 0 && (
+                        <div className="col-auto">
+                          <label className="form-label mb-0">Attribute</label>
+                          <select className="form-select form-select-sm" value={addItemAttributeValueId} onChange={(e) => setAddItemAttributeValueId(e.target.value)}>
+                            <option value="">— None —</option>
+                            {productAttributes
+                              .filter((a) => a.value_id != null)
+                              .map((a) => (
+                                <option key={a.id || a.value_id} value={String(a.value_id)}>
+                                  {[a.attribute_name, a.attribute_value].filter(Boolean).join(": ") || `Value #${a.value_id}`}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      )}
+                      {loadingAttributes && <div className="col-auto align-self-end text-muted small">Loading attributes…</div>}
+                      <div className="col-auto">
+                        <label className="form-label mb-0">Quantity</label>
+                        <input type="number" className="form-control form-control-sm" min={1} value={addItemQuantity} onChange={(e) => setAddItemQuantity(Number(e.target.value) || 1)} />
+                      </div>
+                      <div className="col-auto">
+                        <button type="submit" className="btn btn-primary btn-sm" disabled={addItemSaving}>{addItemSaving ? "Adding…" : "Add item"}</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              )}
+
+              <div className="col-md-12 mt-4">
+                <div className="card h-100">
+                  <div className="card-header d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">Order Item Details</h5>
+                    {!isCancelled && (
+                      <button type="button" className="btn btn-danger btn-sm" onClick={handleCancelOrder} disabled={cancelling}>{cancelling ? "Cancelling…" : "Cancel order"}</button>
+                    )}
+                    {!isCancelled && (
+                      <span className="text-muted small">Update quantity in the table and click Update per row.</span>
+                    )}
                   </div>
 
                   <div className="card-body">
@@ -281,61 +644,113 @@ const OrderDetails = () => {
                         <tr>
                           <th>SL</th>
                           <th>Name</th>
+                          <th>Attribute</th>
                           <th>Info</th>
                           <th>Quantity</th>
                           <th>Photo</th>
                           <th>Amounts</th>
-                          <th>Sub Total</th>
+                          <th className="text-end">Line Total</th>
+                          {!isCancelled && <th>Action</th>}
                         </tr>
                       </thead>
                       <tbody>
-                        {order?.order_details.map((product, index) => (
-                          <tr key={index}>
-                            <td className={"align-middle"}> {++index}</td>
-                            <td className={"align-middle"}>
+                        {order?.order_details?.map((product, index) => (
+                          <tr key={product.id ?? index}>
+                            <td className="align-middle">{index + 1}</td>
+                            <td className="align-middle">
                               <p>{product.name}</p>
                               <p>SKU: {product.sku}</p>
                               <p>Supplier: {product.supplier}</p>
                             </td>
-                            <td className={"align-middle"}>
+                            <td className="align-middle">{product.attribute != null && product.attribute !== "" ? product.attribute : "—"}</td>
+                            <td className="align-middle">
                               <p>Brand: {product?.brand}</p>
                               <p>Category: {product?.category}</p>
                               <p>Sub Category: {product?.sub_category}</p>
                             </td>
-                            <td className={"align-middle"}>
-                              {product?.quantity}
-                            </td>
-                            <td className={"align-middle"}>
-                              <img
-                                src={product?.photo}
-                                alt={"product photo"}
-                                className="table-image img-thumbnail"
-                              />
-                            </td>
-                            <td className={"align-middle"}>
-                              <p>Original Price: {product?.price}</p>
-                              <p>
-                                Discount:{" "}
-                                {GlobalFunction.formatPrice(
-                                  product?.sell_price?.discount
-                                )}
-                              </p>
-                              <p>
-                                Sale Price:{" "}
-                                {GlobalFunction.formatPrice(
-                                  product?.sell_price?.price
-                                )}
-                              </p>
-                            </td>
-                            <td className={"align-middle text-end"}>
-                              {GlobalFunction.formatPrice(
-                                product?.sell_price?.price * product?.quantity
+                            <td className="align-middle">
+                              {!isCancelled ? (
+                                <div className="d-flex align-items-center gap-1">
+                                  <input
+                                    type="number"
+                                    className="form-control form-control-sm"
+                                    min={1}
+                                    style={{ width: "4rem" }}
+                                    value={editQuantities[product.id] ?? product.quantity ?? ""}
+                                    onChange={(e) => setEditQuantities((prev) => ({ ...prev, [product.id]: Number(e.target.value) || 1 }))}
+                                  />
+                                  <button type="button" className="btn btn-outline-primary btn-sm" disabled={updatingId === product.id} onClick={() => handleUpdateQuantity(product.id)}>
+                                    {updatingId === product.id ? "…" : "Update"}
+                                  </button>
+                                </div>
+                              ) : (
+                                product?.quantity
                               )}
                             </td>
+                            <td className="align-middle">
+                              <img src={product?.photo} alt="" className="table-image img-thumbnail" />
+                            </td>
+                            <td className="align-middle">
+                              <p>Original Price: {product?.price}</p>
+                              <p>Discount: {GlobalFunction.formatPrice(product?.sell_price?.discount)}</p>
+                              <p>Sale Price: {GlobalFunction.formatPrice(product?.sell_price?.price)}</p>
+                            </td>
+                            <td className="align-middle text-end">
+                              {GlobalFunction.formatPrice(
+                                product?.line_total ??
+                                (Number(product?.sell_price?.price ?? 0) * Number(product?.quantity ?? 0))
+                              )}
+                            </td>
+                            {!isCancelled && (
+                              <td className="align-middle">
+                                <button type="button" className="btn btn-outline-danger btn-sm" disabled={removingId === product.id} onClick={() => handleRemoveItem(product.id)}>
+                                  {removingId === product.id ? "…" : "Remove"}
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
+                      <tfoot>
+                        <tr>
+                          <td colSpan={7} className="text-end fw-bold">Total cost</td>
+                          <td className="text-end fw-bold">{GlobalFunction.formatPrice(order?.total)}</td>
+                          {!isCancelled && <td />}
+                        </tr>
+                      </tfoot>
                     </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-md-12 mt-4 mb-5">
+                <div className="card h-100">
+                  <div className="card-header">
+                    <h5>History / activity log</h5>
+                  </div>
+                  <div className="card-body">
+                    {order?.history?.length ? (
+                      <table className="table table-sm table-bordered table-striped">
+                        <thead>
+                          <tr>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {order.history.map((h) => (
+                            <tr key={h.id}>
+                              <td>{h.created_at}</td>
+                              <td>{h.action?.replace(/_/g, " ")}</td>
+                              <td>{h.description ?? ""}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="text-muted mb-0">No history yet.</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -365,7 +780,7 @@ const OrderDetails = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {order?.transactions.map((transaction, index) => (
+                        {(order?.transactions ?? []).map((transaction, index) => (
                           <tr key={index}>
                             <td className={"align-middle"}> {++index}</td>
                             <td className={"align-middle"}>

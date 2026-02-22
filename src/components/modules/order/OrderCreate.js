@@ -393,7 +393,8 @@ const OrderCreate = () => {
       amount: amount,
       discount: discount,
       pay_able: pay_able,
-      paid_amount: pay_able,
+      paid_amount: 0,
+      due_amount: pay_able,
     }));
   };
 
@@ -510,7 +511,8 @@ const OrderCreate = () => {
       amount: amount,
       discount: discount,
       pay_able: pay_able,
-      paid_amount: pay_able,
+      paid_amount: 0,
+      due_amount: pay_able,
     }));
   };
 
