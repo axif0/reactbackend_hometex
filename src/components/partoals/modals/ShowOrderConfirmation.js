@@ -1,20 +1,9 @@
-import React from 'react'
+import React from 'react';
 import Modal from 'react-bootstrap/Modal';
 import logo from '../../../assets/img/hometex-logo.png';
-import { useState } from 'react';
-import { useEffect } from 'react';
 import Moment from 'react-moment';
 
 const ShowOrderConfirmation = ({handleOrderPlace, handleOrderSummaryInput, ...props}) => {
-    const [branch, setBranch] = useState({})
-
-
-    useEffect(()=>{
-        if(localStorage.branch !== undefined){
-          setBranch(JSON.parse(localStorage.branch))
-      
-        }
-      },[])
   return (
     <Modal
       {...props}
@@ -31,12 +20,12 @@ const ShowOrderConfirmation = ({handleOrderPlace, handleOrderSummaryInput, ...pr
         <div className={'order-details-confirmation'}>
         <div className='row px-4r'>
             <div className='col-md-6'>
-                {Object.keys(branch).length > 0? 
+                {props.selectedShopDetails ? 
                 <>
                 <img src={logo} alt={'Hometex logo'} className={'img-thumbnail w-10'} />
-                <p><strong>{branch.name}</strong></p>
-                <p><address>{branch.address.address}, {branch.address.area}, {branch.address.district}, {branch.address.division}<br/> 
-                Contact: {branch.phone}</address></p>
+                <p><strong>{props.selectedShopDetails.name}</strong></p>
+                <p><address>{props.selectedShopDetails.address?.address || props.selectedShopDetails.address}, {props.selectedShopDetails.address?.area?.name}, {props.selectedShopDetails.address?.district?.name}, {props.selectedShopDetails.address?.division?.name}<br/> 
+                Contact: {props.selectedShopDetails.phone}</address></p>
                 </>:null
                 }
                 
@@ -67,13 +56,13 @@ const ShowOrderConfirmation = ({handleOrderPlace, handleOrderSummaryInput, ...pr
                         </tr>
                     </thead>
                     <tbody>
-                    {Object.keys(props.carts).map((key, index) => (
-                        <tr>
+                    {props.carts && Array.isArray(props.carts) && props.carts.map((cart, index) => (
+                        <tr key={index}>
                         <td>{++index}</td>
-                        <td>{props.carts[key].name}</td>
-                        <td>{props.carts[key].quantity}</td>
-                        <td>{props.carts[key].original_price}</td>
-                        <td className='text-end'>{new Intl.NumberFormat('us').format(props.carts[key].original_price * props.carts[key].quantity)} ৳</td>
+                        <td>{cart.name}</td>
+                        <td>{cart.quantity}</td>
+                        <td>{cart.original_price}</td>
+                        <td className='text-end'>{new Intl.NumberFormat('us').format(cart.original_price * cart.quantity)} ৳</td>
                         </tr>
                         ))}
                         <tr>

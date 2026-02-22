@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 
 export default function Nav() {
   const [branch, setBranch] = useState({});
+  const [adjustmentNotificationCount, setAdjustmentNotificationCount] = useState(0);
 
   // Function to handle logout
   const handleLogout = () => {
@@ -59,6 +60,20 @@ export default function Nav() {
     }
   }, []);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    axios
+      .get(`${Constants.BASE_URL}/order-pending-adjustment-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        const count = res.data?.count ?? 0;
+        setAdjustmentNotificationCount(Number(count));
+      })
+      .catch(() => setAdjustmentNotificationCount(0));
+  }, []);
+
   return (
     <nav className="sb-topnav navbar navbar-expand navbar-dark bg-theme">
       {/* Navbar Brand */}
@@ -85,11 +100,31 @@ export default function Nav() {
           fontSize: "16px",
           borderRadius: "50px",
         }}
-        onClick={clearLocalStorageAndRedirect} // Use the updated function
+        onClick={clearLocalStorageAndRedirect}
         id="clearStorage"
       >
         Magic Button
       </button>
+      <li className="nav-item dropdown me-2">
+        <a className="nav-link position-relative text-white dropdown-toggle" href="#!" data-bs-toggle="dropdown" aria-expanded="false" title="Order adjustment">
+          <i className="fas fa-sliders-h fa-lg" />
+          {adjustmentNotificationCount > 0 && (
+            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: "0.65rem" }}>
+              {adjustmentNotificationCount}
+            </span>
+          )}
+        </a>
+        <ul className="dropdown-menu dropdown-menu-end">
+          <li>
+            <Link className="dropdown-item" to="/orders">
+              {adjustmentNotificationCount > 0 ? `${adjustmentNotificationCount} order(s) need adjustment` : "Orders"}
+            </Link>
+          </li>
+          <li>
+            <Link className="dropdown-item" to="/adjustments">Adjustment page</Link>
+          </li>
+        </ul>
+      </li>
       <Link to={"/orders/create"}>
       <div className="btn btn-outline-danger">
           <i className="fa-solid fa-store"></i>

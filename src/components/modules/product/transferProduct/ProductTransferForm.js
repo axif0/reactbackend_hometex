@@ -12,11 +12,12 @@ const ProductTransferForm = () => {
   const navigate = useNavigate();
   const [attributesAll, setAttributesAll] = useState([]);
   const [product, setProduct] = useState({});
+  const [allShops, setAllShops] = useState([]);
   const [formData, setFormData] = useState({
     product_id: params.id,
-    from_shop_id: "", // Set an initial from shop ID
-    to_shop_id: "", // Set an initial to shop ID
-    attribute_id: "", // Set an initial to attribute ID
+    from_shop_id: "",
+    to_shop_id: "",
+    attribute_id: "",
     quantity: 1,
   });
 
@@ -54,8 +55,8 @@ const ProductTransferForm = () => {
         console.log(response.data);
         Swal.fire({
             position: "top-end",
-            icon: response.data.cls,
-            title: response.data.message,
+            icon: response.data.cls || "success",
+            title: response.data.message || "Transfer created successfully",
             showConfirmButton: false,
             toast: true,
             timer: 1500,
@@ -67,23 +68,34 @@ const ProductTransferForm = () => {
       });
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const config = {
-      method: "get",
-      maxBodyLength: Infinity,
-      url: `${Constants.BASE_URL}/product/${params.id}`,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
+  const token = localStorage.getItem("token");
+  const headers = { Authorization: `Bearer ${token}` };
 
+  useEffect(() => {
     axios
-      .request(config)
+      .get(`${Constants.BASE_URL}/get-shop-list`, { headers })
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+        setAllShops(list.map((s) => ({ shop_id: s.id, shop_name: s.name ?? "" })));
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    axios
+      .get(`${Constants.BASE_URL}/product/${params.id}`, { headers })
       .then((response) => {
-        console.log(response.data.data);
-        setProduct(response.data.data);
-        setAttributesAll(response.data.data.attributes);
+        const apiData = response.data?.data;
+        const productPayload = apiData?.product ?? apiData;
+        if (!productPayload) return;
+        const shops =
+          productPayload.inventory?.stock_by_location?.map((loc) => ({
+            shop_id: loc.shop_id,
+            shop_name: loc.shop_name ?? "",
+            shop_quantity: loc.quantity ?? 0,
+          })) ?? [];
+        setProduct({ name: productPayload.name ?? "", shops });
+        setAttributesAll(productPayload.attributes ?? []);
       })
       .catch((error) => {
         console.error(error);
@@ -120,13 +132,11 @@ const ProductTransferForm = () => {
                       onChange={handleInputChange}
                     >
                       <option value="">Select a shop</option>
-                      {product.shops &&
-                        product.shops.map((shop) => (
-                          <option key={shop.shop_id} value={shop.shop_id}>
-                            {shop.shop_name} - Available Quantity:{" "}
-                            {shop.shop_quantity}
-                          </option>
-                        ))}
+                      {allShops.map((shop) => (
+                        <option key={shop.shop_id} value={shop.shop_id}>
+                          {shop.shop_name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="form-group">
@@ -139,7 +149,7 @@ const ProductTransferForm = () => {
                       onChange={handleInputChange}
                     >
                       <option value="">Select attribute</option>
-                        {product.shops && attributesAll.map((attrValue, attrIndex) => (
+                        {attributesAll.map((attrValue, attrIndex) => (
                             <option key={attrIndex} value={attrValue.id}>
                                 {attrValue.attribute_name} - ({attrValue.attribute_value})
                             </option>

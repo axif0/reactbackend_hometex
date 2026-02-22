@@ -208,7 +208,10 @@ export default function SideBar() {
                         <div className="collapse" id="order" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordion">
                             <nav className="sb-sidenav-menu-nested nav">
                                 <Link className="nav-link" to="/orders">Order List</Link>
+                                <Link className="nav-link" to="/store-orders">Store Order List</Link>
                                 <Link className="nav-link" to="/orders/create">Create Order</Link>
+                                <Link className="nav-link" to="/order/return">Return</Link>
+                                <Link className="nav-link" to="/adjustments">Adjustment</Link>
                             </nav>
                         </div>
                         {/* POS end */}

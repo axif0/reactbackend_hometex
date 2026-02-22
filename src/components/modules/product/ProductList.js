@@ -23,6 +23,71 @@ const ProductList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+
+  const handleSelectProduct = (id) => {
+    setSelectedProducts((prevSelected) =>
+      prevSelected.includes(id)
+        ? prevSelected.filter((productId) => productId !== id)
+        : [...prevSelected, id]
+    );
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedProducts(products.map((p) => p.id));
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedProducts.length === 0) return;
+    Swal.fire({
+      title: "Are you sure?",
+      text: `You want to delete ${selectedProducts.length} selected products!`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, DELETE THEM!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const token = localStorage.getItem("token");
+        setIsLoading(true);
+        Promise.all(
+          selectedProducts.map((id) =>
+            axios.delete(`${Constants.BASE_URL}/product/${id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          )
+        )
+          .then(() => {
+            setSelectedProducts([]);
+            getProducts();
+            Swal.fire({
+              position: "top-end",
+              icon: "success",
+              title: "Products deleted successfully",
+              showConfirmButton: false,
+              toast: true,
+              timer: 1500,
+            });
+          })
+          .catch((error) => {
+            setIsLoading(false);
+            Swal.fire({
+              position: "top-end",
+              title: "Error deleting some products",
+              icon: "error",
+              showConfirmButton: false,
+              toast: true,
+              timer: 1500,
+            });
+          });
+      }
+    });
+  };
 
   const handleInput = (e) => {
     setInput((prevState) => ({
@@ -262,6 +327,19 @@ const ProductList = () => {
                     </button>
                   </div>
                 </div>
+                {selectedProducts.length > 0 && (
+                  <div className="col-md-2">
+                    <div className="d-grid mt-4">
+                      <button
+                        onClick={handleBulkDelete}
+                        className={"btn btn-danger"}
+                      >
+                        <i className="fa-solid fa-trash me-2"></i>
+                        Delete Selected ({selectedProducts.length})
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="card-body">
@@ -276,6 +354,13 @@ const ProductList = () => {
                   >
                     <thead>
                       <tr>
+                        <th>
+                          <input 
+                            type="checkbox" 
+                            onChange={handleSelectAll}
+                            checked={products.length > 0 && selectedProducts.length === products.length}
+                          />
+                        </th>
                         <th>SL</th>
                         <th>Name /Slug</th>
                         <th>Price / Price Formula</th>
@@ -290,6 +375,13 @@ const ProductList = () => {
                       {products.length > 0 ? (
                         products.map((product, number) => (
                           <tr key={String(product.id)}>
+                            <td>
+                              <input 
+                                type="checkbox" 
+                                checked={selectedProducts.includes(product.id)}
+                                onChange={() => handleSelectProduct(product.id)}
+                              />
+                            </td>
                             <td>{startFrom + number}</td>
                             <td>
                               <p className={"text-theme"}>

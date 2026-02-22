@@ -208,7 +208,13 @@ function OrderList() {
                                               <p>{order.updated_at}</p>
                                             </td>
                                             <td className="align-middle">
-                                              <Link to={`/order/${order.id}`}><button className="btn btn-info btn-sm"><i className="fa-solid fa-eye" /></button></Link>
+                                              <Link to={`/order/${order.id}`} className="me-1"><button className="btn btn-info btn-sm"><i className="fa-solid fa-eye" /></button></Link>
+                                              <Link to={`/adjustments?order_id=${order.id}`} className="me-1" title={order.needs_adjustment ? "Needs adjustment" : "Adjusted"}>
+                                                <button className={`btn btn-sm ${order.needs_adjustment ? "btn-warning position-relative" : "btn-secondary"}`}>
+                                                  <i className="fa-solid fa-sliders" />
+                                                  {order.needs_adjustment && <span className="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style={{ minWidth: "6px", minHeight: "6px" }} />}
+                                                </button>
+                                              </Link>
                                             </td>
                                         </tr>
                                       ))}

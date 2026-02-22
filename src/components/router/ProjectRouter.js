@@ -24,7 +24,11 @@ import AddSalesManger from "../modules/salesManager/AddSalesManger";
 import SalesManagerList from "../modules/salesManager/SalesManagerList";
 import OrderCreate from "../modules/order/OrderCreate";
 import OrderList from "../modules/order/OrderList";
+import StoreOrderList from "../modules/order/StoreOrderList";
 import OrderDetails from "../modules/order/OrderDetails";
+import StoreOrderDetails from "../modules/order/StoreOrderDetails";
+import Adjustment from "../modules/order/Adjustment";
+import Return from "../modules/order/Return";
 import Report from "../modules/report/Report";
 import PriceFormulaList from "../modules/priceFormula/PriceFormulaList";
 import AddPriceFormula from "../modules/priceFormula/AddPriceFormula";
@@ -178,12 +182,28 @@ const ProjectRouter = [
         element: <OrderList/>,
       },
       {
+        path: "/store-orders",
+        element: <StoreOrderList/>,
+      },
+      {
         path: "/orders/create",
         element: <OrderCreate/>,
       },
       {
         path: "/order/:id",
         element: <OrderDetails/>,
+      },
+      {
+        path: "/store-order/:id",
+        element: <StoreOrderDetails/>,
+      },
+      {
+        path: "/adjustments",
+        element: <Adjustment/>,
+      },
+      {
+        path: "/order/return",
+        element: <Return/>,
       },
       {
         path: "/generate-bar-code",

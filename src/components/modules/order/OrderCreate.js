@@ -26,6 +26,8 @@ const OrderCreate = () => {
   const [showOrderConfirmationModal, setShowOrderConfirmationModal] =
     useState(false);
   const [paymentMethod, setPaymentMethod] = useState([]);
+  const [shops, setShops] = useState([]);
+  const [selectedShop, setSelectedShop] = useState("");
 
   const getPaymentMethod = () => {
     const token = localStorage.getItem("token");
@@ -37,6 +39,26 @@ const OrderCreate = () => {
       })
       .then((res) => {
         setPaymentMethod(res.data);
+      })
+      .catch((error) => {
+        console.log("Error fetching payment methods:", error);
+      });
+  };
+
+  const getShops = () => {
+    const token = localStorage.getItem("token");
+    setShops([]);
+    axios
+      .get(`${Constants.BASE_URL}/get-shop-list`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((response) => {
+        setShops(response.data);
+      })
+      .catch((error) => {
+        console.log("Error fetching shops:", error);
       });
   };
 
@@ -49,6 +71,8 @@ const OrderCreate = () => {
 
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [productWithAttributes, setProductWithAttributes] = useState({});
+  const [showQuickViewModal, setShowQuickViewModal] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState({});
   const [selectedProductWithAttributes, setSelectedProductWithAttributes] =
     useState({
       productId: "",
@@ -64,6 +88,9 @@ const OrderCreate = () => {
     });
 
   const paginateProducts = () => {
+    if (!Array.isArray(allProducts)) {
+      return [];
+    }
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
     return allProducts.slice(indexOfFirstProduct, indexOfLastProduct);
@@ -92,41 +119,84 @@ const OrderCreate = () => {
   const [order, setOrder] = useState({});
 
   const handleOrderPlace = () => {
+    if (!selectedShop) {
+      Swal.fire({
+        position: "top-end",
+        icon: "warning",
+        title: "Please select a branch first",
+        showConfirmButton: false,
+        toast: true,
+        timer: 1500,
+      });
+      return;
+    }
     setIsLoading(true);
     const token = localStorage.getItem("token");
-    const shopData = JSON.parse(localStorage.getItem("branch"));
-    const shop_id = shopData.id;
+    const shop_id = Number(selectedShop);
+    const now = new Date();
+    const created_at =
+      now.getFullYear() +
+      "-" +
+      String(now.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(now.getDate()).padStart(2, "0") +
+      " " +
+      String(now.getHours()).padStart(2, "0") +
+      ":" +
+      String(now.getMinutes()).padStart(2, "0") +
+      ":" +
+      String(now.getSeconds()).padStart(2, "0");
+    const order_summary = {
+      customer_number: orderSummary.customer
+        ? String(orderSummary.customer).split(/\s*-\s*/).pop().trim()
+        : null,
+      subtotal: Number(orderSummary.amount) || 0,
+      discount_amount: Number(orderSummary.discount) || 0,
+      tax_amount: 0,
+      total_amount: Number(orderSummary.pay_able) || 0,
+      paid_amount: Number(orderSummary.paid_amount) || 0,
+      due_amount: Number(orderSummary.due_amount) || 0,
+      payment_method_id: orderSummary.payment_method_id || null,
+      status: "completed",
+      notes: orderSummary.trx_id || "store counter sale",
+    };
+    const payload = {
+      created_by: "Store User",
+      created_at,
+      shop_id,
+      carts: cartItems.map((item) => ({
+        productId: Number(item.productId),
+        quantity: Number(item.quantity) || 1,
+      })),
+      order_summary,
+    };
     axios
-      .post(
-        `${Constants.BASE_URL}/order`,
-        { carts: cartItems, orderSummary: orderSummary, shop_id: shop_id },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
+      .post(`${Constants.BASE_URL}/storecustomer`, payload, {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((res) => {
-        if (res.data.flag != undefined) {
+        setIsLoading(false);
+        const data = res.data;
+        if (data.order != null) {
           Swal.fire({
             position: "top-end",
-            icon: res.data.cls,
-            title: res.data.msg,
+            icon: data.cls || "success",
+            title: data.msg || "Order placed",
             showConfirmButton: false,
             toast: true,
             timer: 1500,
           });
-          if (res.data.flag != undefined) {
-            setShowOrderConfirmationModal(false);
-            navigate(`/order/${res.data.order_id}`);
-          }
-          setIsLoading(false);
+          setShowOrderConfirmationModal(false);
+          navigate(`/store-order/${data.order.id}`);
         }
       })
       .catch((error) => {
         setIsLoading(false);
         console.log(error);
-        // handle error here, e.g. set an error state or display an error message
       });
   };
 
@@ -225,8 +295,15 @@ const OrderCreate = () => {
   };
 
   const handleCartAttributeWise = (product) => {
+    // Reset selected product when opening the modal
+    setSelectedProductWithAttributes({ productId: "", attributesId: "" });
     setShowAddCardModal(true);
     setProductWithAttributes(product);
+  };
+
+  const handleQuickView = (product) => {
+    setQuickViewProduct(product);
+    setShowQuickViewModal(true);
   };
 
   // console.log("=>>>", productWithAttributes);
@@ -237,8 +314,8 @@ const OrderCreate = () => {
       name: product.name,
       attribute_name: "",
       original_price: product.original_price,
-      price: product.sell_price.price,
-      discount_price: product.sell_price.discount,
+      price: product?.sell_price?.price || product?.price || 0,
+      discount_price: product?.sell_price?.discount || 0,
       sku: product.sku,
       in_stock: product.stock,
       image: product.primary_photo,
@@ -251,7 +328,7 @@ const OrderCreate = () => {
       (item) => item.id == attributeId
     );
     let attribute_name = "";
-    let sell_price = product.sell_price.price;
+    let sell_price = product?.sell_price?.price || product?.price || 0;
     if (attribute_values) {
       attribute_name =
         attribute_values.attribute_name +
@@ -274,7 +351,7 @@ const OrderCreate = () => {
         original_price: product.price,
         // 'price': product.sell_price.price,
         price: sell_price,
-        discount_price: product.sell_price.discount,
+        discount_price: product?.sell_price?.discount || 0,
         sku: product.sku,
         in_stock: product.stock,
         image: product.primary_photo,
@@ -298,15 +375,16 @@ const OrderCreate = () => {
     let amount = 0;
     let discount = 0;
     let pay_able = 0;
-    let paid_amount = 0;
 
     if (cartItems.length > 0) {
-      cartItems.map((val, index) => {
-       console.log(val);
+      cartItems.map((val) => {
+        const itemPrice = val.price || 0;
+        const itemDisc = val.discount_price || 0;
+        
         items += val.quantity;
-        amount += val.original_price * val.quantity;
-        discount += val.discount_price * val.quantity;
-        pay_able += val.original_price * val.quantity;
+        pay_able += itemPrice * val.quantity;
+        discount += itemDisc * val.quantity;
+        amount += (itemPrice + itemDisc) * val.quantity;
       });
     }
     setOrderSummary((prevState) => ({
@@ -314,8 +392,8 @@ const OrderCreate = () => {
       items: items,
       amount: amount,
       discount: discount,
-      pay_able: pay_able - discount,
-      paid_amount: pay_able - discount,
+      pay_able: pay_able,
+      paid_amount: pay_able,
     }));
   };
 
@@ -385,20 +463,28 @@ const OrderCreate = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const getProducts = () => {
+    if (!selectedShop) {
+      setAllProducts([]);
+      setTotalPages(1);
+      return;
+    }
     setIsLoading(true);
     const token = localStorage.getItem("token");
+    const url = `${Constants.BASE_URL}/shops/${selectedShop}?page=1&search=${input.search}&order_by=${input.order_by}&direction=${input.direction}`;
+
     axios
-      .get(
-        `${Constants.BASE_URL}/product?page=1&search=${input.search}&order_by=${input.order_by}&direction=${input.direction}`,
-        {
+      .get(url, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       )
       .then((res) => {
-        setAllProducts(res.data.data);
-        setTotalPages(Math.ceil(res.data.data.length / productsPerPage));
+        const payload = res.data?.data ?? res.data;
+        const prodData = Array.isArray(payload?.products) ? payload.products : (Array.isArray(payload) ? payload : []);
+        const pagination = payload?.pagination;
+        setAllProducts(prodData);
+        setTotalPages(pagination?.last_page ?? Math.max(1, Math.ceil(prodData.length / productsPerPage)));
         setIsLoading(false);
       })
       .catch((error) => {
@@ -414,9 +500,9 @@ const OrderCreate = () => {
     let paid_amount = 0;
     Object.keys(carts).map((key) => {
       items += carts[key].quantity;
-      amount += carts[key].original_price * carts[key].quantity;
-      discount += carts[key].sell_price.discount * carts[key].quantity;
-      pay_able += carts[key].sell_price.price * carts[key].quantity;
+      amount += (carts[key]?.original_price || carts[key]?.price || 0) * (carts[key]?.quantity || 0);
+      discount += (carts[key]?.sell_price?.discount || 0) * (carts[key]?.quantity || 0);
+      pay_able += (carts[key]?.sell_price?.price || carts[key]?.price || 0) * (carts[key]?.quantity || 0);
     });
     setOrderSummary((prevState) => ({
       ...prevState,
@@ -455,9 +541,13 @@ const OrderCreate = () => {
   };
 
   useEffect(() => {
-    getProducts();
     getPaymentMethod();
+    getShops();
   }, []);
+
+  useEffect(() => {
+    getProducts();
+  }, [selectedShop]);
 
   useEffect(() => {
     //sanjib need unblock
@@ -495,15 +585,37 @@ const OrderCreate = () => {
                       <h5>Product List</h5>
                     </div>
                     <div className="card-body p-1">
-                      <div className="product-search-area mb-4 mt-2">
-                        <div className="input-group">
-                          <input
-                            className="form-control form-control-sm"
-                            type={"search"}
+                      <div className="px-2 mt-2 mb-3">
+                        <select
+                          className="form-select form-select-sm"
+                          value={selectedShop}
+                          onChange={(e) => setSelectedShop(e.target.value)}
+                        >
+                          <option value="">Select Branch First</option>
+                          {shops.map((shop, index) => (
+                            <option key={index} value={shop.id}>
+                              {shop.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {selectedShop ? (
+                        <>
+                          <div className="product-search-area mb-4 mt-2">
+                            <div className="input-group">
+                              <input
+                                className="form-control form-control-sm"
+                                type={"search"}
                             name={"search"}
                             value={input.search}
                             onChange={handleInput}
-                            placeholder={"search..."}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                getProducts();
+                              }
+                            }}
+                            placeholder={"search by id or name..."}
                           />
                           <button
                             onClick={getProducts}
@@ -525,64 +637,137 @@ const OrderCreate = () => {
                           </Modal.Title>
                         </Modal.Header>
                         <Modal.Body>
-                          <img
-                            className="order-product-photo img-thumbnail"
-                            src={productWithAttributes.primary_photo}
-                            alt={productWithAttributes?.name}
-                          />
-                          <select
-                            onChange={(e) => {
-                              onChangeProductAttribute(
-                                e.target.value,
-                                productWithAttributes
-                              );
-                            }}
-                          >
-                            <option>Select Arrtibute</option>
-                            {typeof productWithAttributes.attributes !==
-                              "undefined" &&
-                              productWithAttributes?.attributes.map(
-                                (attr, ind) => {
-                                  return (
-                                    <>
-                                      <option
-                                        data-name={
-                                          attr?.attribute_name +
-                                          " " +
-                                          attr?.attribute_value
-                                        }
-                                        value={attr?.id}
-                                      >
-                                        {" "}
-                                        {attr?.attribute_name +
-                                          " " +
-                                          attr?.attribute_value}{" "}
-                                      </option>
-                                    </>
-                                  );
-                                }
-                              )}
-                          </select>
-                          <button
-                            className="btn-success btn-sm ms-1"
-                            onClick={(e) => {
-                              addProductToCart();
-                            }}
-                          >
-                            <i className="fa-solid fa-plus" />
-                          </button>
+                          <div className="text-center mb-3">
+                            <img
+                              className="order-product-photo img-thumbnail"
+                              src={productWithAttributes.primary_photo}
+                              alt={productWithAttributes?.name}
+                            />
+                          </div>
+
+                          <div className="product-info mb-3 px-2">
+                            <p className="mb-1"><strong>SKU:</strong> {productWithAttributes?.sku}</p>
+                            <p className="mb-1"><strong>Stock:</strong> {productWithAttributes?.stock}</p>
+                            <p className="mb-1 text-theme">
+                              <strong>Current Price:</strong>{" "}
+                              {selectedProductWithAttributes?.price ? selectedProductWithAttributes.price : (productWithAttributes?.sell_price?.price || productWithAttributes?.price || 0)}
+                            </p>
+                            {(selectedProductWithAttributes?.discount_price > 0 || productWithAttributes?.sell_price?.discount > 0) && (
+                              <p className="mb-1 text-theme">
+                                <strong>Discount:</strong>{" "}
+                                {selectedProductWithAttributes?.price ? selectedProductWithAttributes.discount_price : (productWithAttributes?.sell_price?.discount || 0)}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="d-flex align-items-center px-2">
+                            <select
+                              className="form-select form-select-sm w-auto me-2"
+                              onChange={(e) => {
+                                onChangeProductAttribute(
+                                  e.target.value,
+                                  productWithAttributes
+                                );
+                              }}
+                            >
+                              <option value="">Select Attribute</option>
+                              {typeof productWithAttributes.attributes !==
+                                "undefined" &&
+                                productWithAttributes?.attributes.map(
+                                  (attr, ind) => {
+                                    return (
+                                        <option
+                                          key={ind}
+                                          data-name={
+                                            attr?.attribute_name +
+                                            " " +
+                                            attr?.attribute_value
+                                          }
+                                          value={attr?.id}
+                                        >
+                                          {attr?.attribute_name +
+                                            " " +
+                                            attr?.attribute_value}
+                                        </option>
+                                    );
+                                  }
+                                )}
+                            </select>
+                            <button
+                              className="btn btn-success btn-sm"
+                              onClick={(e) => {
+                                addProductToCart();
+                              }}
+                            >
+                              <i className="fa-solid fa-plus" />
+                            </button>
+                          </div>
                           {selectAttributeError && (
-                            <>
-                              <p>Please Select attribute</p>
-                            </>
+                            <div className="px-2 mt-2">
+                              <p className="text-danger mb-0">Please Select attribute</p>
+                            </div>
                           )}
                         </Modal.Body>
                       </Modal>
 
-                      {paginateProducts().length > 0 &&
+                      <Modal
+                        centered
+                        show={showQuickViewModal}
+                        onHide={() => setShowQuickViewModal(false)}
+                      >
+                        <Modal.Header closeButton>
+                          <Modal.Title id="contained-modal-title-vcenter">
+                            {quickViewProduct?.name}
+                          </Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body>
+                          <div className="text-center mb-3">
+                            <img
+                              className="img-fluid img-thumbnail"
+                              style={{ maxHeight: '200px' }}
+                              src={quickViewProduct?.primary_photo || quickViewProduct?.image}
+                              alt={quickViewProduct?.name}
+                            />
+                          </div>
+                          <div className="px-2">
+                            <p className="mb-1"><strong>SKU:</strong> {quickViewProduct?.sku}</p>
+                            <p className="mb-1"><strong>Stock:</strong> {quickViewProduct?.stock ?? quickViewProduct?.in_stock}</p>
+                            <p className="mb-1"><strong>Original Price:</strong> {quickViewProduct?.original_price ?? quickViewProduct?.price}</p>
+                            <p className="mb-1 text-theme">
+                              <strong>Price:</strong>{" "}
+                              {quickViewProduct?.sell_price?.price ?? quickViewProduct?.price ?? 0}
+                              {quickViewProduct?.sell_price?.symbol}
+                              {" | "}
+                              <strong>Discount:</strong>{" "}
+                              {quickViewProduct?.sell_price?.discount ?? quickViewProduct?.discount_price ?? 0}
+                              {quickViewProduct?.sell_price?.symbol}
+                            </p>
+                            {quickViewProduct?.attributes?.length > 0 && (
+                              <div className="mt-3">
+                                <strong>Attributes:</strong>
+                                <ul className="mb-0 mt-1">
+                                  {quickViewProduct.attributes.map((attr, idx) => (
+                                    <li key={idx}>
+                                      {attr.attribute_name} {attr.attribute_value} 
+                                      {attr.math_sign !== '+' && attr.math_sign !== '-' && attr.math_sign !== '*' ? null : ` (${attr.math_sign}${attr.number})`}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {quickViewProduct?.attribute_name && !quickViewProduct?.attributes && (
+                              <div className="mt-3">
+                                <strong>Attribute:</strong> {quickViewProduct?.attribute_name}
+                              </div>
+                            )}
+                          </div>
+                        </Modal.Body>
+                      </Modal>
+
+                      {paginateProducts()?.length > 0 &&
                         paginateProducts().map((product, index) => {
                           let has_attributes =
-                            product.attributes.length > 0 ? "yes" : "no";
+                            product?.attributes?.length > 0 ? "yes" : "no";
                           return (
                             <div
                               className="d-flex align-items-center my-2 p-1 order-product-container position-relative"
@@ -599,7 +784,10 @@ const OrderCreate = () => {
                                 >
                                   <i className="fa-solid fa-plus" />
                                 </button>
-                                <button className="btn-info btn-sm ms-1">
+                                <button
+                                  onClick={() => handleQuickView(product)}
+                                  className="btn-info btn-sm ms-1"
+                                >
                                   <i className="fa-solid fa-eye" />
                                 </button>
                               </div>
@@ -620,10 +808,10 @@ const OrderCreate = () => {
                                 <p className="text-theme">
                                   <small>
                                     <strong>
-                                      Price: {product.sell_price.price}
-                                      {product.sell_price.symbol} | Discount:{" "}
-                                      {product.sell_price.discount}
-                                      {product.sell_price.symbol}
+                                      Price: {product?.sell_price?.price || product?.price || 0}
+                                      {product?.sell_price?.symbol} | Discount:{" "}
+                                      {product?.sell_price?.discount || 0}
+                                      {product?.sell_price?.symbol}
                                     </strong>
                                   </small>
                                 </p>
@@ -637,29 +825,35 @@ const OrderCreate = () => {
                           );
                         })}
 
-                      <div className="pagination">
-                        <button
-                          onClick={() =>
-                            setCurrentPage((prev) => Math.max(prev - 1, 1))
-                          }
-                          disabled={currentPage === 1}
-                        >
-                          Previous
-                        </button>
-                        <span>
-                          Page {currentPage} of {totalPages}
-                        </span>
-                        <button
-                          onClick={() =>
-                            setCurrentPage((prev) =>
-                              Math.min(prev + 1, totalPages)
-                            )
-                          }
-                          disabled={currentPage === totalPages}
-                        >
-                          Next
-                        </button>
-                      </div>
+                          <div className="pagination">
+                            <button
+                              onClick={() =>
+                                setCurrentPage((prev) => Math.max(prev - 1, 1))
+                              }
+                              disabled={currentPage === 1}
+                            >
+                              Previous
+                            </button>
+                            <span>
+                              Page {currentPage} of {totalPages}
+                            </span>
+                            <button
+                              onClick={() =>
+                                setCurrentPage((prev) =>
+                                  Math.min(prev + 1, totalPages)
+                                )
+                              }
+                              disabled={currentPage === totalPages}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="alert alert-warning text-center mt-3">
+                          Please select a branch first to view products.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -725,7 +919,10 @@ const OrderCreate = () => {
                                   >
                                     <i className="fa-solid fa-times" />
                                   </button>
-                                  <button className="btn-info btn-sm ms-1">
+                                  <button
+                                    className="btn-info btn-sm ms-1"
+                                    onClick={() => handleQuickView(item)}
+                                  >
                                     {" "}
                                     <i className="fa-solid fa-eye " />{" "}
                                   </button>
@@ -856,14 +1053,14 @@ const OrderCreate = () => {
                         {customers.map((customer, index) => (
                           <li
                             className={
-                              orderSummary.customer_id == customer.id
+                              orderSummary.customer_id === customer.id
                                 ? "text-theme"
                                 : ""
                             }
                             onClick={() => selectCustomer(customer)}
                             key={index}
                           >
-                            {customer.name} - {customer.phone}
+                            {customer.phone}
                           </li>
                         ))}
                       </ul>
@@ -871,7 +1068,8 @@ const OrderCreate = () => {
                         <button
                           disabled={
                             orderSummary.items == 0 ||
-                            orderSummary.customer_id == 0
+                            orderSummary.customer_id == 0 ||
+                            selectedShop == ""
                           }
                           onClick={() => setShowOrderConfirmationModal(true)}
                           className={"btn theme-button"}
@@ -902,6 +1100,7 @@ const OrderCreate = () => {
         handleOrderPlace={handleOrderPlace}
         handleOrderSummaryInput={handleOrderSummaryInput}
         paymentMethod={paymentMethod}
+        selectedShopDetails={shops.find(s => s.id == selectedShop)}
       />
     </>
   );
