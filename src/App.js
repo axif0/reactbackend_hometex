@@ -2,6 +2,7 @@ import "./assets/css/styles.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min";
 import "./assets/css/style.scss";
+import "./AxiosInterceptor"; // Import axios interceptor for global auth headers
 import ProjectRouter from "./components/router/ProjectRouter";
 import PublicRouter from "./components/router/PublicRouter";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
