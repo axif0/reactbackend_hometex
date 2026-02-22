@@ -76,6 +76,27 @@ export default function SideBar() {
                         </div>
                                     </>
                                 }
+
+                        {/* POS System - after Products */}
+                        {
+                                    ((saleExist && hasType !== "3") || (hasType !== "3"))  &&
+                                    <>
+                        <div className="sb-sidenav-menu-heading">Pos System</div>
+                        <Link className="nav-link collapsed" to="#" data-bs-toggle="collapse" data-bs-target="#order" aria-expanded="false" aria-controls="collapseLayouts">
+                            <div className="sb-nav-link-icon"><i className="fas fa-columns"></i></div>
+                            Sales
+                            <div className="sb-sidenav-collapse-arrow"><i className="fas fa-angle-down"></i></div>
+                        </Link>
+                        <div className="collapse" id="order" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordion">
+                            <nav className="sb-sidenav-menu-nested nav">
+                                <Link className="nav-link" to="/orders">Order List</Link>
+                                <Link className="nav-link" to="/store-orders">Store Order List</Link>
+                                <Link className="nav-link" to="/orders/create">Create Order</Link>
+                                <Link className="nav-link" to="/order/return">Return</Link>
+                                <Link className="nav-link" to="/adjustments">Adjustment</Link>
+                            </nav>
+                        </div>
+                        </>}
                         
                         {/* Price Formula */}
                         {/* <Link className="nav-link collapsed" to="#" data-bs-toggle="collapse" data-bs-target="#priceFormula" aria-expanded="false" aria-controls="collapseLayouts">
@@ -194,29 +215,6 @@ export default function SideBar() {
                         </>}
                             {/* </>
                         } */}
-                        {/* POS start */}
-                        {
-                                    ((saleExist && hasType !== "3") || (hasType !== "3"))  &&
-                                    <>
-                        
-                        <div className="sb-sidenav-menu-heading">Pos System</div>
-                        <Link className="nav-link collapsed" to="#" data-bs-toggle="collapse" data-bs-target="#order" aria-expanded="false" aria-controls="collapseLayouts">
-                            <div className="sb-nav-link-icon"><i className="fas fa-columns"></i></div>
-                            Sales
-                            <div className="sb-sidenav-collapse-arrow"><i className="fas fa-angle-down"></i></div>
-                        </Link>
-                        <div className="collapse" id="order" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordion">
-                            <nav className="sb-sidenav-menu-nested nav">
-                                <Link className="nav-link" to="/orders">Order List</Link>
-                                <Link className="nav-link" to="/store-orders">Store Order List</Link>
-                                <Link className="nav-link" to="/orders/create">Create Order</Link>
-                                <Link className="nav-link" to="/order/return">Return</Link>
-                                <Link className="nav-link" to="/adjustments">Adjustment</Link>
-                            </nav>
-                        </div>
-                        {/* POS end */}
-                        
-                        </>}
                     </div>
                 </div>
                 <div className="sb-sidenav-footer bg-theme text-silver">
