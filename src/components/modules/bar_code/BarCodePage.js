@@ -10,11 +10,7 @@ const TruncateText = (text, maxLength) => {
 };
 
 const BarCodePage = React.forwardRef((props, ref) => {
-  const { selectedAttribute, products, columnCount, printing } = props;
-
-  console.log("=========");
-  console.log(ref);
-  console.log("=========");
+  const { selectedAttribute, products, columnCount } = props;
 
   const calculatePrice = (basePrice, mathSign, number) => {
     switch (mathSign) {
@@ -38,21 +34,27 @@ const BarCodePage = React.forwardRef((props, ref) => {
   }
 
   return (
-    <div className="print-page" style={{ width: "55mm", height: "25mm" }}>
+    <div
+      className="print-page"
+      ref={ref}
+    >
       {pages.map((page, pageIndex) => (
-        <div key={pageIndex} className="" ref={ref}>
+        <div key={pageIndex} className="print-page-row">
           {page.map((product, index) => (
             <div
               key={index}
               className="bar-code-item"
               style={{
-                flex: `1 0 ${100 / columnCount}%`,
+                flex: `0 0 ${100 / columnCount}%`,
+                boxSizing: "border-box",
+                padding: "0",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
+                justifyContent: "center",
                 fontSize: "9px",
                 letterSpacing: ".15em",
-                margin: "0px",
+                margin: "0",
               }}
             >
               <p>
@@ -62,7 +64,7 @@ const BarCodePage = React.forwardRef((props, ref) => {
               </p>
               <div
                 className="barcode"
-                style={{ textAlign: "center", format: "CODE128" }}
+                style={{ textAlign: "center", width: "100%" }}
               >
                 <Barcode
                   value={product.sku}
@@ -70,6 +72,7 @@ const BarCodePage = React.forwardRef((props, ref) => {
                   height={12}
                   fontSize={8}
                   margin={0}
+                  format="CODE128"
                 />
               </div>
               <p>

@@ -26,6 +26,16 @@ const OrderDetails = () => {
   const [productAttributes, setProductAttributes] = useState([]);
   const [loadingAttributes, setLoadingAttributes] = useState(false);
   const [addItemSaving, setAddItemSaving] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+  const [childSubCategories, setChildSubCategories] = useState([]);
+  const [allSubCategories, setAllSubCategories] = useState([]);
+  const [allChildSubCategories, setAllChildSubCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState("");
+  const [selectedChildSubCategoryId, setSelectedChildSubCategoryId] = useState("");
+  const [availableProducts, setAvailableProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [editQuantities, setEditQuantities] = useState({});
@@ -90,6 +100,107 @@ const OrderDetails = () => {
         setAddressSaving(false);
       })
       .catch(() => setAddressSaving(false));
+  };
+
+  const loadProductFilterData = () => {
+    const authToken = localStorage.getItem("token");
+    if (!authToken) return;
+    axios
+      .get(`${base}/get-add-product-data`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      })
+      .then((res) => {
+        const data = res.data ?? {};
+        setCategories(Array.isArray(data.categories) ? data.categories : []);
+        setAllSubCategories(Array.isArray(data.sub_categories) ? data.sub_categories : []);
+        setAllChildSubCategories(Array.isArray(data.child_sub_categories) ? data.child_sub_categories : []);
+      })
+      .catch(() => {});
+  };
+
+  const fetchProductsForSelection = (categoryId, subCategoryId, childSubCategoryId) => {
+    if (!categoryId && !subCategoryId && !childSubCategoryId) {
+      setAvailableProducts([]);
+      return;
+    }
+    setLoadingProducts(true);
+    const params = { per_page: 100, page: 1 };
+    if (categoryId) params.category_id = categoryId;
+    if (subCategoryId) params.sub_category_id = subCategoryId;
+    if (childSubCategoryId) params.child_sub_category_id = childSubCategoryId;
+    axios
+      .get(`${Constants.BASE_URL}/products`, { params })
+      .then((res) => {
+        const raw = res.data;
+        const payload = raw?.data ?? raw;
+        const list = Array.isArray(payload?.products)
+          ? payload.products
+          : Array.isArray(payload)
+          ? payload
+          : [];
+        const shopId = order?.shop?.id ? Number(order.shop.id) : null;
+        const filtered = !shopId
+          ? list
+          : list.filter((p) => {
+              const shops = Array.isArray(p.shops) ? p.shops : [];
+              return shops.some(
+                (s) => Number(s.shop_id) === shopId && Number(s.shop_quantity ?? 0) > 0
+              );
+            });
+        setAvailableProducts(filtered);
+      })
+      .catch(() => {
+        setAvailableProducts([]);
+      })
+      .finally(() => setLoadingProducts(false));
+  };
+
+  const handleCategorySelect = (event) => {
+    const value = event.target.value;
+    setSelectedCategoryId(value);
+    setSelectedSubCategoryId("");
+    setSelectedChildSubCategoryId("");
+    setSubCategories([]);
+    setChildSubCategories([]);
+    setAvailableProducts([]);
+    const id = Number(value);
+    if (!id) return;
+    const subs = allSubCategories.filter((s) => Number(s.category_id) === id);
+    setSubCategories(subs);
+    fetchProductsForSelection(id, null, null);
+  };
+
+  const handleSubCategorySelect = (event) => {
+    const value = event.target.value;
+    setSelectedSubCategoryId(value);
+    setSelectedChildSubCategoryId("");
+    setChildSubCategories([]);
+    setAvailableProducts([]);
+    const categoryId = selectedCategoryId ? Number(selectedCategoryId) : null;
+    const subId = Number(value);
+    if (!subId) {
+      if (categoryId) fetchProductsForSelection(categoryId, null, null);
+      return;
+    }
+    const childs = allChildSubCategories.filter(
+      (c) => Number(c.sub_category_id) === subId
+    );
+    setChildSubCategories(childs);
+    fetchProductsForSelection(categoryId, subId, null);
+  };
+
+  const handleChildSubCategorySelect = (event) => {
+    const value = event.target.value;
+    setSelectedChildSubCategoryId(value);
+    setAvailableProducts([]);
+    const categoryId = selectedCategoryId ? Number(selectedCategoryId) : null;
+    const subId = selectedSubCategoryId ? Number(selectedSubCategoryId) : null;
+    const childId = Number(value);
+    if (!childId) {
+      fetchProductsForSelection(categoryId, subId, null);
+      return;
+    }
+    fetchProductsForSelection(categoryId, subId, childId);
   };
 
   const handleAddItem = (e) => {
@@ -176,6 +287,7 @@ const OrderDetails = () => {
 
   useEffect(() => {
     getOrderDetails();
+    loadProductFilterData();
   }, []);
 
   useEffect(() => {
@@ -588,11 +700,82 @@ const OrderDetails = () => {
                     <h5>Add item to order</h5>
                   </div>
                   <div className="card-body">
-                    <form onSubmit={handleAddItem} className="row align-items-end g-2">
-                      <div className="col-auto">
-                        <label className="form-label mb-0">Product ID</label>
-                        <input type="number" className="form-control form-control-sm" min={1} value={addItemProductId} onChange={(e) => setAddItemProductId(e.target.value)} placeholder="Product ID" />
+                  <form onSubmit={handleAddItem} className="row align-items-end g-2">
+                    <div className="col-md-3 col-sm-6">
+                      <label className="form-label mb-0">Category</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={selectedCategoryId}
+                        onChange={handleCategorySelect}
+                      >
+                        <option value="">Select category</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-3 col-sm-6">
+                      <label className="form-label mb-0">Sub Category</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={selectedSubCategoryId}
+                        onChange={handleSubCategorySelect}
+                        disabled={!selectedCategoryId}
+                      >
+                        <option value="">Select sub category</option>
+                        {subCategories.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-3 col-sm-6">
+                      <label className="form-label mb-0">Child Sub Category</label>
+                      <select
+                        className="form-select form-select-sm"
+                        value={selectedChildSubCategoryId}
+                        onChange={handleChildSubCategorySelect}
+                        disabled={!selectedSubCategoryId}
+                      >
+                        <option value="">Select child sub category</option>
+                        {childSubCategories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-3 col-sm-6">
+                      <label className="form-label mb-0">Product</label>
+                      <select
+                        className="form-select form-select-sm mb-1"
+                        value={addItemProductId}
+                        onChange={(e) => setAddItemProductId(e.target.value)}
+                      >
+                        <option value="">Select product</option>
+                        {availableProducts.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} {p.sku ? `(${p.sku})` : ""} #{p.id}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        className="form-control form-control-sm"
+                        min={1}
+                        value={addItemProductId}
+                        onChange={(e) => setAddItemProductId(e.target.value)}
+                        placeholder="Or enter Product ID"
+                      />
+                    </div>
+                    {loadingProducts && (
+                      <div className="col-12 text-muted small">
+                        Loading products…
                       </div>
+                    )}
                       {productAttributes.length > 0 && (
                         <div className="col-auto">
                           <label className="form-label mb-0">Attribute</label>

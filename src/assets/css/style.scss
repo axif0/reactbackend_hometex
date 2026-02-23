@@ -237,6 +237,23 @@
     }
 }
 
+.print-page {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.print-page-row {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.bar-code-item svg {
+    width: 100%;
+    height: auto;
+}
+
 .deleted {
     color: red;
     text-decoration: line-through;

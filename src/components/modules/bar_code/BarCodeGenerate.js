@@ -21,6 +21,7 @@ const BarCodeGenerate = () => {
     child_sub_category_id: "",
     product_id: "",
     attribute_value_id: "",
+    barcode_search: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState([]);
@@ -29,6 +30,8 @@ const BarCodeGenerate = () => {
   const [subCategories, setSubCategories] = useState([]);
   const [childSubCategories, setChildSubCategories] = useState([]);
   const [barcodeRef, setBarcodeRef] = useState(null);
+  const [activeTab, setActiveTab] = useState("generate"); // 'search' | 'generate'
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     if(productSKU){
@@ -54,6 +57,13 @@ const BarCodeGenerate = () => {
   }, [productSKU]);
 
   const handleInput = (e) => {
+    if (e.target.name === "barcode_search") {
+      setInput((prevState) => ({
+        ...prevState,
+        [e.target.name]: e.target.value,
+      }));
+      return;
+    }
     if (e.target.name === "category_id") {
       let category_id = parseInt(e.target.value);
       if (!Number.isNaN(category_id)) {
@@ -116,6 +126,7 @@ const BarCodeGenerate = () => {
       child_sub_category_id: "",
       product_id: "",
       attribute_value_id: "",
+      barcode_search: "",
     });
     setSubCategories([]);
     setChildSubCategories([]);
@@ -123,6 +134,7 @@ const BarCodeGenerate = () => {
     setProducts([]);
     setAttributes([]);
     setSelectedAttribute(null);
+    setSelectedProduct(null);
   };
 
   // const handleProductSearch = async () => {
@@ -171,23 +183,35 @@ const BarCodeGenerate = () => {
   
     try {
       let url = `${Constants.BASE_URL}/get-product-list-for-bar-code?`;
-      
-      // If product_id is selected, fetch only that product
+
       if (input.product_id) {
-        url += `product_id=${input.product_id}`;
+        url += `product_id=${encodeURIComponent(input.product_id)}`;
+      } else if (input.barcode_search) {
+        const code = String(input.barcode_search).trim();
+        if (code !== "") {
+          if (/^[0-9]+$/.test(code)) {
+            url += `product_id=${encodeURIComponent(code)}`;
+          } else {
+            url += `name=${encodeURIComponent(code)}`;
+          }
+        }
       } else {
-        // Otherwise, use the existing filters
-        url += `name=${input?.name}&category_id=${input?.category_id}&sub_category_id=${input?.sub_category_id}&child_sub_category_id=${input?.child_sub_category_id}`;
+        url += `name=${encodeURIComponent(input?.name || "")}` +
+          `&category_id=${encodeURIComponent(input?.category_id || "")}` +
+          `&sub_category_id=${encodeURIComponent(input?.sub_category_id || "")}` +
+          `&child_sub_category_id=${encodeURIComponent(input?.child_sub_category_id || "")}`;
       }
       
       const response = await axios.get(url, { 
         headers: { Authorization: `Bearer ${token}` } 
       });
   
-      setProducts(response.data.data);
+      const list = response.data.data || [];
+      setProducts(list);
       
-      if (response.data.data.length > 0) {
-        const firstProduct = response.data.data[0];
+      if (list.length > 0) {
+        const firstProduct = list[0];
+        setSelectedProduct(firstProduct);
         if (firstProduct.product_attributes?.length > 0) {
           setAttributes(firstProduct.product_attributes);
           setSelectedAttribute(firstProduct.product_attributes.find(
@@ -317,60 +341,21 @@ const BarCodeGenerate = () => {
       return componentRef.current;
     },
     documentTitle: "Bar Codes",
-
-    // pageStyle: `
-    // @page {
-    //   size: 55mm 25mm; /* Custom receipt label size */
-    //   margin: 5mm;
-    // }`
-
-    // @media print {
-    //   body {
-    //     visibility: hidden;
-    //   }
-      
-    //   .barcode-print {
-    //     visibility: visible;
-    //     width: 80mm;
-    //     height: 50mm;
-    //     text-align: center;
-    //     font-family: Arial, sans-serif;
-    //   }
-    // }`
-
     pageStyle: `
-    @page {
-      size: 55mm 25mm; /* Custom receipt label size */
-      margin: 5mm;
-    }`
-
-
-    // @media print {
-    //   body {
-    //     visibility: hidden;
-    //   }
-      
-    //   .barcode-print {
-    //     visibility: visible;
-    //     width: 80mm;
-    //     height: 50mm;
-    //     text-align: center;
-    //     font-family: Arial, sans-serif;
-    //   }
-    // }`
-
+      @page {
+        margin: 5mm;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    `,
   });
 
   return (
     <>
-      <style>
-        {`
-          @page {
-              size: auto;
-              margin: 0;
-          }
-        `}
-      </style>
       <Breadcrumb title={"Generate or Create Barcode"} />
       <div className="row">
         <div className="col-md-12">
@@ -386,168 +371,309 @@ const BarCodeGenerate = () => {
             </div>
 
             <div className="card-body">
-              <div className="row align-items-baseline">
-                <div className="col-md-3">
-                  <label className="w-100 mt-4 mt-md-0">
-                    <p>Select Product Category</p>
-                    <select
-                      className={"form-select mt-2"}
-                      name={"category_id"}
-                      value={input.category_id}
-                      onChange={handleInput}
-                    >
-                      <option>Select Category</option>
-                      {categories.map((category, index) => (
-                        <option value={category.id} key={index}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="col-md-3">
-                  <label className="w-100 mt-4 mt-md-0">
-                    <p>Select Product Sub-Category</p>
-                    <select
-                      className={"form-select mt-2"}
-                      name={"sub_category_id"}
-                      value={input.sub_category_id}
-                      onChange={handleInput}
-                      disabled={input.category_id === undefined}
-                    >
-                      <option>Select Sub-Category</option>
-                      {subCategories.map((sub_category, index) => (
-                        <option value={sub_category.id} key={index}>
-                          {sub_category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="col-md-3">
-                  <label className="w-100 mt-4 mt-md-0">
-                    <p>Select Product Child Sub-Category</p>
-                    <select
-                      className={"form-select mt-2"}
-                      name={"child_sub_category_id"}
-                      value={input.child_sub_category_id}
-                      onChange={handleInput}
-                      disabled={input.sub_category_id === undefined}
-                    >
-                      <option>Select Child Sub-Category</option>
-                      {childSubCategories.map((child_sub_category, index) => (
-                        <option value={child_sub_category.id} key={index}>
-                          {child_sub_category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="col-md-3">
-                  <label className="w-100 mt-4 mt-md-0">
-                    <p>Select Product</p>
-                    <select
-                      className={"form-select mt-2"}
-                      name={"product_id"}
-                      value={input.product_id}
-                      onChange={handleInput}
-                      disabled={!input.child_sub_category_id || productList.length === 0}
-                    >
-                      <option value="">Select Product</option>
-                      {productList.map((product, index) => (
-                        <option value={product.id} key={index}>
-                          {product.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+              <div className="mb-3">
+                <div className="btn-group" role="group">
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${activeTab === "search" ? "btn-primary" : "btn-outline-primary"}`}
+                    onClick={() => setActiveTab("search")}
+                  >
+                    Search
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${activeTab === "generate" ? "btn-primary" : "btn-outline-primary"}`}
+                    onClick={() => setActiveTab("generate")}
+                  >
+                    Generate or Create Barcode
+                  </button>
                 </div>
               </div>
-              <div className="row">
-                <div className="col-md-3">
-                  <label className="w-100 mt-4 mt-md-0">
-                    <p>Search By Product Name</p>
-                    <input
-                      className={"form-control mt-2"}
-                      type={"search"}
-                      name={"name"}
-                      value={input.name}
-                      onChange={handleInput}
-                      placeholder={"Enter product name"}
-                    />
-                  </label>
-                </div>
-                
-              </div>
-              <div className="container">
-                <div className="row my-2 d-flex align-items-center">
-                  <div className="col-md-3">
-                    <label className="w-100 mt-4 mt-md-0">
-                      <p>Column Count</p>
-                      <input
-                        className={"form-control mt-2"}
-                        type={"number"}
-                        name={"column_count"}
-                        value={columnCount}
-                        onChange={(e) => setColumnCount(parseInt(e.target.value))}
-                        placeholder={"Enter column count"}
-                      />
-                    </label>
-                  </div>
-                  <div className="col-md-3">
-                    <label className="w-100 mt-4 mt-md-0">
-                      <p>Select Attribute</p>
-                      <select
-                        className={"form-select mt-2"}
-                        name={"attribute_value_id"}
-                        value={input.attribute_value_id}
-                        onChange={handleInput}
-                      >
-                        <option>Select attributes</option>
-                        {attributes.map((attribute, index) => (
-                          <option value={attribute?.id} key={index}>
-                            {attribute.attributes.name} - {attribute.attribute_value.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                <div className="col-md-2">
-                  <div className="d-grid mt-4">
-                    <button
-                      onClick={handleProductSearch}
-                      className={"btn theme-button"}
-                      dangerouslySetInnerHTML={{
-                        __html: isLoading
-                          ? '<span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span> Loading...'
-                          : "Search",
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="col-md-2">
-                  <div className="d-grid mt-4">
-                    <button
-                      onClick={handleResetFilter}
-                      className={"btn btn-secondary"}
-                    >
-                      <i className="fa-solid fa-filter-circle-xmark me-2"></i>
-                      Reset Filter
-                    </button>
-                  </div>
-                </div>
-                  <div className="col-md-1">
-                    <div className="d-grid">
-                      <button
-                        onClick={handlePrint}
-                        className={"btn btn-sm mt-3"}
-                      >
-                        <i className="fa-solid fa-print fa-beat-fade fa-2xl"></i>
-                      </button>
+
+              {activeTab === "search" && (
+                <>
+                  <div className="row">
+                    <div className="col-md-3">
+                      <label className="w-100 mt-2 mt-md-0">
+                        <p>Search By Product Name</p>
+                        <input
+                          className={"form-control mt-2"}
+                          type={"search"}
+                          name={"name"}
+                          value={input.name}
+                          onChange={handleInput}
+                          placeholder={"Enter product name"}
+                        />
+                      </label>
+                    </div>
+                    <div className="col-md-3">
+                      <label className="w-100 mt-2 mt-md-0">
+                        <p>Search By Product ID / Barcode</p>
+                        <input
+                          className={"form-control mt-2"}
+                          type={"text"}
+                          name={"barcode_search"}
+                          value={input.barcode_search}
+                          onChange={handleInput}
+                          placeholder={"Scan or enter ID / barcode"}
+                        />
+                      </label>
+                    </div>
+                    <div className="col-md-2">
+                      <div className="d-grid mt-4">
+                        <button
+                          onClick={handleProductSearch}
+                          className={"btn theme-button"}
+                          dangerouslySetInnerHTML={{
+                            __html: isLoading
+                              ? '<span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span> Loading...'
+                              : "Search",
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-2">
+                      <div className="d-grid mt-4">
+                        <button
+                          onClick={handleResetFilter}
+                          className={"btn btn-secondary"}
+                        >
+                          <i className="fa-solid fa-filter-circle-xmark me-2"></i>
+                          Reset
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+
+                  {selectedProduct && (
+                    <div className="mt-4">
+                      <h5>Product Details</h5>
+                      <div className="row">
+                        <div className="col-md-4">
+                          <label className="w-100">
+                            <p>Name</p>
+                            <input
+                              className="form-control form-control-sm"
+                              value={selectedProduct.name || ""}
+                              readOnly
+                            />
+                          </label>
+                        </div>
+                        <div className="col-md-4">
+                          <label className="w-100">
+                            <p>SKU / Barcode</p>
+                            <input
+                              className="form-control form-control-sm"
+                              value={selectedProduct.sku || ""}
+                              readOnly
+                            />
+                          </label>
+                        </div>
+                        <div className="col-md-4">
+                          <label className="w-100">
+                            <p>Brand</p>
+                            <input
+                              className="form-control form-control-sm"
+                              value={selectedProduct.brand?.name || ""}
+                              readOnly
+                            />
+                          </label>
+                        </div>
+                        <div className="col-md-4">
+                          <label className="w-100 mt-2">
+                            <p>Base Price</p>
+                            <input
+                              className="form-control form-control-sm"
+                              value={selectedProduct.price ?? ""}
+                              readOnly
+                            />
+                          </label>
+                        </div>
+                        <div className="col-md-4">
+                          <label className="w-100 mt-2">
+                            <p>Sell Price</p>
+                            <input
+                              className="form-control form-control-sm"
+                              value={selectedProduct.sell_price?.price ?? ""}
+                              readOnly
+                            />
+                          </label>
+                        </div>
+                        <div className="col-md-4">
+                          <label className="w-100 mt-2">
+                            <p>Select Attribute</p>
+                            <select
+                              className="form-select form-select-sm"
+                              name="attribute_value_id"
+                              value={input.attribute_value_id}
+                              onChange={handleInput}
+                            >
+                              <option value="">Select attribute</option>
+                              {attributes.map((attribute, index) => (
+                                <option value={attribute?.id} key={index}>
+                                  {attribute.attributes?.name} - {attribute.attribute_value?.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {activeTab === "generate" && (
+                <>
+                  <div className="row align-items-baseline">
+                    <div className="col-md-3">
+                      <label className="w-100 mt-2 mt-md-0">
+                        <p>Select Product Category</p>
+                        <select
+                          className={"form-select mt-2"}
+                          name={"category_id"}
+                          value={input.category_id}
+                          onChange={handleInput}
+                        >
+                          <option>Select Category</option>
+                          {categories.map((category, index) => (
+                            <option value={category.id} key={index}>
+                              {category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="col-md-3">
+                      <label className="w-100 mt-2 mt-md-0">
+                        <p>Select Product Sub-Category</p>
+                        <select
+                          className={"form-select mt-2"}
+                          name={"sub_category_id"}
+                          value={input.sub_category_id}
+                          onChange={handleInput}
+                          disabled={input.category_id === undefined}
+                        >
+                          <option>Select Sub-Category</option>
+                          {subCategories.map((sub_category, index) => (
+                            <option value={sub_category.id} key={index}>
+                              {sub_category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="col-md-3">
+                      <label className="w-100 mt-2 mt-md-0">
+                        <p>Select Product Child Sub-Category</p>
+                        <select
+                          className={"form-select mt-2"}
+                          name={"child_sub_category_id"}
+                          value={input.child_sub_category_id}
+                          onChange={handleInput}
+                          disabled={input.sub_category_id === undefined}
+                        >
+                          <option>Select Child Sub-Category</option>
+                          {childSubCategories.map((child_sub_category, index) => (
+                            <option value={child_sub_category.id} key={index}>
+                              {child_sub_category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="col-md-3">
+                      <label className="w-100 mt-2 mt-md-0">
+                        <p>Select Product</p>
+                        <select
+                          className={"form-select mt-2"}
+                          name={"product_id"}
+                          value={input.product_id}
+                          onChange={handleInput}
+                          disabled={!input.child_sub_category_id || productList.length === 0}
+                        >
+                          <option value="">Select Product</option>
+                          {productList.map((product, index) => (
+                            <option value={product.id} key={index}>
+                              {product.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="container">
+                    <div className="row my-2 d-flex align-items-center">
+                      <div className="col-md-3">
+                        <label className="w-100 mt-2 mt-md-0">
+                          <p>Column Count</p>
+                          <input
+                            className={"form-control mt-2"}
+                            type={"number"}
+                            name={"column_count"}
+                            value={columnCount}
+                            onChange={(e) => setColumnCount(parseInt(e.target.value))}
+                            placeholder={"Enter column count"}
+                          />
+                        </label>
+                      </div>
+                      <div className="col-md-3">
+                        <label className="w-100 mt-2 mt-md-0">
+                          <p>Select Attribute</p>
+                          <select
+                            className={"form-select mt-2"}
+                            name={"attribute_value_id"}
+                            value={input.attribute_value_id}
+                            onChange={handleInput}
+                          >
+                            <option>Select attributes</option>
+                            {attributes.map((attribute, index) => (
+                              <option value={attribute?.id} key={index}>
+                                {attribute.attributes?.name} - {attribute.attribute_value?.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      <div className="col-md-2">
+                        <div className="d-grid mt-4">
+                          <button
+                            onClick={handleProductSearch}
+                            className={"btn theme-button"}
+                            dangerouslySetInnerHTML={{
+                              __html: isLoading
+                                ? '<span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span> Loading...'
+                                : "Load Labels",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-md-2">
+                        <div className="d-grid mt-4">
+                          <button
+                            onClick={handleResetFilter}
+                            className={"btn btn-secondary"}
+                          >
+                            <i className="fa-solid fa-filter-circle-xmark me-2"></i>
+                            Reset
+                          </button>
+                        </div>
+                      </div>
+                      <div className="col-md-2">
+                        <div className="d-grid mt-4">
+                          <button
+                            onClick={handlePrint}
+                            className={"btn btn-sm btn-outline-dark"}
+                            disabled={products.length === 0}
+                          >
+                            <i className="fa-solid fa-print"></i> Print
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
               <div style={{ position: "relative" }}>
                 <div className="bar-code-area-wraper mt-3 pt-3">
                 {products.length > 0 && (
