@@ -167,6 +167,14 @@ const OrderCreate = () => {
       carts: cartItems.map((item) => ({
         productId: Number(item.productId),
         quantity: Number(item.quantity) || 1,
+        meta: {
+          attributesId: item.attributesId,
+          attribute_name: item.attribute_name,
+          original_price: item.original_price,
+          price: item.price,
+          discount_price: item.discount_price,
+          sku: item.sku,
+        },
       })),
       order_summary,
     };

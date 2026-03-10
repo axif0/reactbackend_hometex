@@ -5,6 +5,7 @@ import axios from "axios";
 import Constants from "../../../Constants";
 import { useParams } from "react-router-dom";
 import ReactDOM from "react-dom";
+import Swal from "sweetalert2";
 import GlobalFunction from "../../../assets/GlobalFunction";
 import PrintInvoice from "./PrintInvoice";
 import GiftInvoicePrint from "./GiftInvoicePrint";
@@ -15,7 +16,7 @@ const OrderDetails = () => {
   const params = useParams();
   const [order, setOrder] = useState();
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedTaxType, setSelectedTaxType] = useState(0);
+  const [selectedTaxType, setSelectedTaxType] = useState("0");
   const [editPaidAmount, setEditPaidAmount] = useState("");
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [addressForm, setAddressForm] = useState({});
@@ -36,6 +37,7 @@ const OrderDetails = () => {
   const [selectedChildSubCategoryId, setSelectedChildSubCategoryId] = useState("");
   const [availableProducts, setAvailableProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
   const [removingId, setRemovingId] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [editQuantities, setEditQuantities] = useState({});
@@ -98,8 +100,23 @@ const OrderDetails = () => {
       .then((res) => {
         setOrder(res.data?.data ?? res.data);
         setAddressSaving(false);
+        Swal.fire({
+          icon: "success",
+          title: "Address updated successfully",
+          timer: 1500,
+          showConfirmButton: false,
+          position: "top-end",
+          toast: true,
+        });
       })
-      .catch(() => setAddressSaving(false));
+      .catch((error) => {
+        setAddressSaving(false);
+        Swal.fire({
+          icon: "error",
+          title: "Failed to update address",
+          text: error?.response?.data?.message || error?.message || "Please try again.",
+        });
+      });
   };
 
   const loadProductFilterData = () => {
@@ -218,8 +235,23 @@ const OrderDetails = () => {
         setAddItemQuantity(1);
         setAddItemAttributeValueId("");
         setAddItemSaving(false);
+        Swal.fire({
+          icon: "success",
+          title: "Item added to order",
+          timer: 1500,
+          showConfirmButton: false,
+          position: "top-end",
+          toast: true,
+        });
       })
-      .catch(() => setAddItemSaving(false));
+      .catch((error) => {
+        setAddItemSaving(false);
+        Swal.fire({
+          icon: "error",
+          title: "Failed to add item",
+          text: error?.response?.data?.message || error?.message || "Please try again.",
+        });
+      });
   };
 
   const handleUpdateQuantity = (detailId) => {
@@ -240,8 +272,23 @@ const OrderDetails = () => {
         details.forEach((d) => { if (d.id != null) qtyMap[d.id] = Number(d.quantity) || 1; });
         setEditQuantities((prev) => ({ ...prev, ...qtyMap }));
         setUpdatingId(null);
+        Swal.fire({
+          icon: "success",
+          title: "Quantity updated",
+          timer: 1200,
+          showConfirmButton: false,
+          position: "top-end",
+          toast: true,
+        });
       })
-      .catch(() => setUpdatingId(null));
+      .catch((error) => {
+        setUpdatingId(null);
+        Swal.fire({
+          icon: "error",
+          title: "Failed to update quantity",
+          text: error?.response?.data?.message || error?.message || "Please try again.",
+        });
+      });
   };
 
   const handleRemoveItem = (detailId) => {
@@ -251,8 +298,23 @@ const OrderDetails = () => {
       .then((res) => {
         setOrder(res.data?.data ?? res.data);
         setRemovingId(null);
+        Swal.fire({
+          icon: "success",
+          title: "Item removed from order",
+          timer: 1200,
+          showConfirmButton: false,
+          position: "top-end",
+          toast: true,
+        });
       })
-      .catch(() => setRemovingId(null));
+      .catch((error) => {
+        setRemovingId(null);
+        Swal.fire({
+          icon: "error",
+          title: "Failed to remove item",
+          text: error?.response?.data?.message || error?.message || "Please try again.",
+        });
+      });
   };
 
   const handleCancelOrder = () => {
@@ -262,8 +324,23 @@ const OrderDetails = () => {
       .then((res) => {
         setOrder(res.data?.data ?? res.data);
         setCancelling(false);
+        Swal.fire({
+          icon: "success",
+          title: "Order cancelled",
+          timer: 1500,
+          showConfirmButton: false,
+          position: "top-end",
+          toast: true,
+        });
       })
-      .catch(() => setCancelling(false));
+      .catch((error) => {
+        setCancelling(false);
+        Swal.fire({
+          icon: "error",
+          title: "Failed to cancel order",
+          text: error?.response?.data?.message || error?.message || "Please try again.",
+        });
+      });
   };
 
   const handleUpdatePayment = () => {
@@ -281,8 +358,23 @@ const OrderDetails = () => {
         setOrder(data);
         setEditPaidAmount(data?.paid_amount != null ? String(data.paid_amount) : "");
         setPaymentSaving(false);
+        Swal.fire({
+          icon: "success",
+          title: "Payment updated successfully",
+          timer: 1500,
+          showConfirmButton: false,
+          position: "top-end",
+          toast: true,
+        });
       })
-      .catch(() => setPaymentSaving(false));
+      .catch((error) => {
+        setPaymentSaving(false);
+        Swal.fire({
+          icon: "error",
+          title: "Failed to update payment",
+          text: error?.response?.data?.message || error?.message || "Please try again.",
+        });
+      });
   };
 
   useEffect(() => {
@@ -386,6 +478,16 @@ const OrderDetails = () => {
       </>
     );
   }
+  const filteredProducts =
+    productSearch && Array.isArray(availableProducts)
+      ? availableProducts.filter((p) => {
+          const sku = (p?.sku || "").toString().toLowerCase();
+          const name = (p?.name || "").toString().toLowerCase();
+          const q = productSearch.toLowerCase();
+          return sku.includes(q) || name.includes(q);
+        })
+      : availableProducts;
+
   if (!order) {
     return (
       <>
@@ -410,15 +512,19 @@ const OrderDetails = () => {
               />
             </div>
             <div className="tax-type-dropdown text-center my-3">
-                <label>Select Tax Type:</label>
-                <select value={selectedTaxType} onChange={handleTaxTypeChange} className="mx-2">
-                  <option value="0" selected>Select Vat %</option>
-                  <option value="0.050">Retail Vat (5.0%)</option>
-                  <option value="0.075">Supply Vat (7.5%)</option>
-                  <option value="0.000">Vat Exempt (0.0%)</option>
-                  {/* Add options for other tax types as needed */}
-                </select>
-              </div>
+              <label>Select Tax Type:</label>
+              <select
+                value={selectedTaxType}
+                onChange={handleTaxTypeChange}
+                className="mx-2"
+              >
+                <option value="0">Select Vat %</option>
+                <option value="0.050">Retail Vat (5.0%)</option>
+                <option value="0.075">Supply Vat (7.5%)</option>
+                <option value="0.000">Vat Exempt (0.0%)</option>
+                {/* Add options for other tax types as needed */}
+              </select>
+            </div>
             <div className="search-area mb-4 mx-3">
               <div className="row">
                 <div className="col-md-6">
@@ -749,27 +855,27 @@ const OrderDetails = () => {
                       </select>
                     </div>
                     <div className="col-md-3 col-sm-6">
-                      <label className="form-label mb-0">Product</label>
+                      <label className="form-label mb-0">Search by SKU or Name</label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm mb-1"
+                        placeholder="Type SKU or product name"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                      />
+                      <label className="form-label mb-0 mt-1">Product</label>
                       <select
-                        className="form-select form-select-sm mb-1"
+                        className="form-select form-select-sm"
                         value={addItemProductId}
                         onChange={(e) => setAddItemProductId(e.target.value)}
                       >
                         <option value="">Select product</option>
-                        {availableProducts.map((p) => (
+                        {filteredProducts.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name} {p.sku ? `(${p.sku})` : ""} #{p.id}
                           </option>
                         ))}
                       </select>
-                      <input
-                        type="number"
-                        className="form-control form-control-sm"
-                        min={1}
-                        value={addItemProductId}
-                        onChange={(e) => setAddItemProductId(e.target.value)}
-                        placeholder="Or enter Product ID"
-                      />
                     </div>
                     {loadingProducts && (
                       <div className="col-12 text-muted small">
@@ -779,15 +885,37 @@ const OrderDetails = () => {
                       {productAttributes.length > 0 && (
                         <div className="col-auto">
                           <label className="form-label mb-0">Attribute</label>
-                          <select className="form-select form-select-sm" value={addItemAttributeValueId} onChange={(e) => setAddItemAttributeValueId(e.target.value)}>
+                          <select
+                            className="form-select form-select-sm"
+                            value={addItemAttributeValueId}
+                            onChange={(e) => setAddItemAttributeValueId(e.target.value)}
+                          >
                             <option value="">— None —</option>
                             {productAttributes
-                              .filter((a) => a.value_id != null)
-                              .map((a) => (
-                                <option key={a.id || a.value_id} value={String(a.value_id)}>
-                                  {[a.attribute_name, a.attribute_value].filter(Boolean).join(": ") || `Value #${a.value_id}`}
-                                </option>
-                              ))}
+                              .map((a) => {
+                                const valueId =
+                                  a.value_id ??
+                                  a.attribute_value_id ??
+                                  (a.value && a.value.id != null ? a.value.id : null);
+                                const attrName =
+                                  a.attribute_name ||
+                                  (a.attribute && a.attribute.name ? a.attribute.name : null);
+                                const valName =
+                                  a.attribute_value ||
+                                  (a.value && a.value.name ? a.value.name : null);
+                                if (valueId == null) {
+                                  return null;
+                                }
+                                const label =
+                                  [attrName, valName].filter(Boolean).join(": ") ||
+                                  `Value #${valueId}`;
+                                return (
+                                  <option key={a.id || valueId} value={String(valueId)}>
+                                    {label}
+                                  </option>
+                                );
+                              })
+                              .filter(Boolean)}
                           </select>
                         </div>
                       )}
