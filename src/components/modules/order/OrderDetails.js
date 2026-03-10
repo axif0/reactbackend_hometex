@@ -43,6 +43,8 @@ const OrderDetails = () => {
   const [editQuantities, setEditQuantities] = useState({});
   const [cancelling, setCancelling] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [skuSearchLoading, setSkuSearchLoading] = useState(false);
+  const [selectedProductInfo, setSelectedProductInfo] = useState(null);
 
   const token = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
   const base = Constants.BASE_URL;
@@ -141,12 +143,16 @@ const OrderDetails = () => {
       return;
     }
     setLoadingProducts(true);
+    const shopId = order?.shop?.id ? Number(order.shop.id) : null;
     const params = { per_page: 100, page: 1 };
     if (categoryId) params.category_id = categoryId;
     if (subCategoryId) params.sub_category_id = subCategoryId;
     if (childSubCategoryId) params.child_sub_category_id = childSubCategoryId;
+    const url = shopId
+      ? `${base}/shops/${shopId}`
+      : `${base}/products`;
     axios
-      .get(`${Constants.BASE_URL}/products`, { params })
+      .get(url, { params, ...token() })
       .then((res) => {
         const raw = res.data;
         const payload = raw?.data ?? raw;
@@ -155,16 +161,7 @@ const OrderDetails = () => {
           : Array.isArray(payload)
           ? payload
           : [];
-        const shopId = order?.shop?.id ? Number(order.shop.id) : null;
-        const filtered = !shopId
-          ? list
-          : list.filter((p) => {
-              const shops = Array.isArray(p.shops) ? p.shops : [];
-              return shops.some(
-                (s) => Number(s.shop_id) === shopId && Number(s.shop_quantity ?? 0) > 0
-              );
-            });
-        setAvailableProducts(filtered);
+        setAvailableProducts(list);
       })
       .catch(() => {
         setAvailableProducts([]);
@@ -234,6 +231,7 @@ const OrderDetails = () => {
         setAddItemProductId("");
         setAddItemQuantity(1);
         setAddItemAttributeValueId("");
+        setSelectedProductInfo(null);
         setAddItemSaving(false);
         Swal.fire({
           icon: "success",
@@ -397,8 +395,10 @@ const OrderDetails = () => {
     if (!pid || pid < 1) {
       setProductAttributes([]);
       setAddItemAttributeValueId("");
+      setSelectedProductInfo(null);
       return;
     }
+    const currentCategoryId = selectedCategoryId;
     setLoadingAttributes(true);
     axios.get(`${base}/products/${pid}`, token())
       .then((res) => {
@@ -407,13 +407,71 @@ const OrderDetails = () => {
         setProductAttributes(Array.isArray(attrs) ? attrs : []);
         setAddItemAttributeValueId("");
         setLoadingAttributes(false);
+        setSelectedProductInfo(product);
+
+        if (!currentCategoryId) {
+          const catId = product?.category?.id;
+          const subCatId = product?.sub_category?.id;
+          const childSubCatId = product?.child_sub_category?.id;
+          if (catId) {
+            setSelectedCategoryId(String(catId));
+            const subs = allSubCategories.filter((s) => Number(s.category_id) === Number(catId));
+            setSubCategories(subs);
+          }
+          if (subCatId) {
+            setSelectedSubCategoryId(String(subCatId));
+            const childs = allChildSubCategories.filter((c) => Number(c.sub_category_id) === Number(subCatId));
+            setChildSubCategories(childs);
+          }
+          if (childSubCatId) {
+            setSelectedChildSubCategoryId(String(childSubCatId));
+          }
+        }
       })
       .catch(() => {
         setProductAttributes([]);
         setAddItemAttributeValueId("");
         setLoadingAttributes(false);
+        setSelectedProductInfo(null);
       });
   }, [addItemProductId]);
+
+  useEffect(() => {
+    const q = productSearch.trim();
+    if (selectedCategoryId) return;
+    if (!q || q.length < 2) {
+      setAvailableProducts([]);
+      return;
+    }
+    setSkuSearchLoading(true);
+    const shopId = order?.shop?.id;
+    const url = shopId
+      ? `${base}/shops/${shopId}`
+      : `${base}/products`;
+    const timer = setTimeout(() => {
+      axios
+        .get(url, {
+          params: { search: q, per_page: 30, page: 1 },
+          ...token(),
+        })
+        .then((res) => {
+          const raw = res.data;
+          const payload = raw?.data ?? raw;
+          const list = Array.isArray(payload?.products)
+            ? payload.products
+            : Array.isArray(payload)
+            ? payload
+            : [];
+          setAvailableProducts(list);
+          setSkuSearchLoading(false);
+        })
+        .catch(() => {
+          setAvailableProducts([]);
+          setSkuSearchLoading(false);
+        });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [productSearch, selectedCategoryId, order?.shop?.id]);
 
   const handleTaxTypeChange = (event) => {
     setSelectedTaxType(event.target.value);
@@ -478,15 +536,18 @@ const OrderDetails = () => {
       </>
     );
   }
-  const filteredProducts =
-    productSearch && Array.isArray(availableProducts)
-      ? availableProducts.filter((p) => {
-          const sku = (p?.sku || "").toString().toLowerCase();
-          const name = (p?.name || "").toString().toLowerCase();
-          const q = productSearch.toLowerCase();
-          return sku.includes(q) || name.includes(q);
-        })
-      : availableProducts;
+  // When no category is selected, the API already searched — no need for client-side filter.
+  // When a category IS selected, the API returns all category products, so filter client-side.
+  const filteredProducts = (() => {
+    if (!Array.isArray(availableProducts)) return [];
+    if (!productSearch || !selectedCategoryId) return availableProducts;
+    const q = productSearch.toLowerCase();
+    return availableProducts.filter((p) => {
+      const sku = (p?.sku || "").toString().toLowerCase();
+      const name = (p?.name || "").toString().toLowerCase();
+      return sku.includes(q) || name.includes(q);
+    });
+  })();
 
   if (!order) {
     return (
@@ -872,12 +933,20 @@ const OrderDetails = () => {
                         <option value="">Select product</option>
                         {filteredProducts.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name} {p.sku ? `(${p.sku})` : ""} #{p.id}
+                            {p.sku ? `[${p.sku}]` : `#${p.id}`}{p.name ? ` — ${p.name}` : ""}
                           </option>
                         ))}
                       </select>
+                      {selectedProductInfo && addItemProductId && (
+                        <div className="mt-1 p-2 border rounded bg-light small">
+                          <strong>{selectedProductInfo.name || "(No name)"}</strong>
+                          {selectedProductInfo.sku && <span className="ms-2 text-muted">SKU: {selectedProductInfo.sku}</span>}
+                          {selectedProductInfo.category?.name && <span className="ms-2 text-muted">| {selectedProductInfo.category.name}</span>}
+                          {selectedProductInfo.sub_category?.name && <span className="ms-1 text-muted">› {selectedProductInfo.sub_category.name}</span>}
+                        </div>
+                      )}
                     </div>
-                    {loadingProducts && (
+                    {(loadingProducts || skuSearchLoading) && (
                       <div className="col-12 text-muted small">
                         Loading products…
                       </div>
