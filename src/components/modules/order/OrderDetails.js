@@ -438,9 +438,8 @@ const OrderDetails = () => {
 
   useEffect(() => {
     const q = productSearch.trim();
-    if (selectedCategoryId) return;
     if (!q || q.length < 2) {
-      setAvailableProducts([]);
+      if (!selectedCategoryId) setAvailableProducts([]);
       return;
     }
     setSkuSearchLoading(true);
@@ -471,7 +470,7 @@ const OrderDetails = () => {
         });
     }, 400);
     return () => clearTimeout(timer);
-  }, [productSearch, selectedCategoryId, order?.shop?.id]);
+  }, [productSearch, order?.shop?.id, selectedCategoryId]);
 
   const handleTaxTypeChange = (event) => {
     setSelectedTaxType(event.target.value);
@@ -536,18 +535,7 @@ const OrderDetails = () => {
       </>
     );
   }
-  // When no category is selected, the API already searched — no need for client-side filter.
-  // When a category IS selected, the API returns all category products, so filter client-side.
-  const filteredProducts = (() => {
-    if (!Array.isArray(availableProducts)) return [];
-    if (!productSearch || !selectedCategoryId) return availableProducts;
-    const q = productSearch.toLowerCase();
-    return availableProducts.filter((p) => {
-      const sku = (p?.sku || "").toString().toLowerCase();
-      const name = (p?.name || "").toString().toLowerCase();
-      return sku.includes(q) || name.includes(q);
-    });
-  })();
+  const filteredProducts = Array.isArray(availableProducts) ? availableProducts : [];
 
   if (!order) {
     return (
