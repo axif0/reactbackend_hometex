@@ -37,7 +37,7 @@ const ShowOrderConfirmation = ({handleOrderPlace, handleOrderSummaryInput, ...pr
             <div className='col-md-12 text-end'>
                 <p><strong>Date:  
                     <Moment format='DD MMMM, YYYY'>
-                        2023/04/01
+                        {new Date()}
                     </Moment>
                     </strong></p>
                 <h5>Customer Details</h5>
