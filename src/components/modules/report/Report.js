@@ -95,7 +95,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Sales</h6>
-                                                                <h4>{report.total_sales}</h4>
+                                                                <h4>{report.total_sales ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -110,7 +110,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Purchase</h6>
-                                                                <h4>{report.total_purchase}</h4>
+                                                                <h4>{report.total_purchase ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -125,7 +125,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Today's Sale</h6>
-                                                                <h4>{report.total_sales_today}</h4>
+                                                                <h4>{report.total_sales_today ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -140,7 +140,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Today's Purchase</h6>
-                                                                <h4>{report.total_purchase_today}</h4>
+                                                                <h4>{report.total_purchase_today ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -165,7 +165,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Product</h6>
-                                                                <h4>{report.total_product}</h4>
+                                                                <h4>{report.total_product ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -180,7 +180,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Stock</h6>
-                                                                <h4>{report.total_stock}</h4>
+                                                                <h4>{report.total_stock ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -195,7 +195,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Low Stock</h6>
-                                                                <h4>{report.low_stock}</h4>
+                                                                <h4>{report.low_stock ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -210,7 +210,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Stock Value (Buy)</h6>
-                                                                <h4>{report.buy_value}</h4>
+                                                                <h4>{report.buy_value ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -225,7 +225,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Stock Value (Sale Without Discount)</h6>
-                                                                <h4>{report.sale_value}</h4>
+                                                                <h4>{report.sale_value ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -240,7 +240,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Possible Profit</h6>
-                                                                <h4>{report.possible_profit}</h4>
+                                                                <h4>{report.possible_profit ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -265,7 +265,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Expense</h6>
-                                                                <h4>12,258</h4>
+                                                                <h4>{report.total_expense ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -280,7 +280,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Expense Today</h6>
-                                                                <h4>12,258</h4>
+                                                                <h4>{report.total_expense_today ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -305,7 +305,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Withdrawals</h6>
-                                                                <h4>12,258</h4>
+                                                                <h4>{report.total_withdrawals ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -320,7 +320,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Withdrawals Today</h6>
-                                                                <h4>12,258</h4>
+                                                                <h4>{report.total_withdrawals_today ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -345,7 +345,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Profits</h6>
-                                                                <h4>12,258</h4>
+                                                                <h4>{report.total_profit ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -360,7 +360,7 @@ const Report = () => {
                                                             </div>
                                                             <div className="flex-grow-1 ms-3">
                                                                 <h6>Total Profits Today</h6>
-                                                                <h4>12,258</h4>
+                                                                <h4>{report.total_profit_today ?? '—'}</h4>
                                                             </div>
                                                         </div>
                                                     </div>

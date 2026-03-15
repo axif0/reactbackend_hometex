@@ -119,6 +119,22 @@ const ShowOrderConfirmation = ({handleOrderPlace, handleOrderSummaryInput, ...pr
                         <th className='text-end'>{new Intl.NumberFormat('us').format(props.order_summary.due_amount)} ৳</th>
                         </tr>
                         <tr>
+                        <th colSpan={4} className='text-end text-theme align-middle'>Sales Manager (created by)</th>
+                        <th className='text-end'>
+                        <select
+                            className="form-select form-select-sm text-end"
+                            name={'sales_manager_id'}
+                            value={props.order_summary.sales_manager_id ?? ''}
+                            onChange={handleOrderSummaryInput}
+                            >
+                              <option value="">Select sales manager</option>
+                              {(props.salesManagers || []).map((sm) => (
+                                <option key={sm.id} value={sm.id}>{sm.name}</option>
+                              ))}
+                        </select>
+                          </th>
+                        </tr>
+                        <tr>
                         <th colSpan={4} className='text-end text-theme'>Select Payment Method</th>
                         <th className='text-end'>
                         <select

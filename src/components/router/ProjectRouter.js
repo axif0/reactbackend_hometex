@@ -27,6 +27,8 @@ import OrderList from "../modules/order/OrderList";
 import StoreOrderList from "../modules/order/StoreOrderList";
 import OrderDetails from "../modules/order/OrderDetails";
 import StoreOrderDetails from "../modules/order/StoreOrderDetails";
+import CustomerList from "../modules/customer/CustomerList";
+import CustomerOrders from "../modules/customer/CustomerOrders";
 import Adjustment from "../modules/order/Adjustment";
 import Return from "../modules/order/Return";
 import Report from "../modules/report/Report";
@@ -184,6 +186,14 @@ const ProjectRouter = [
       {
         path: "/store-orders",
         element: <StoreOrderList/>,
+      },
+      {
+        path: "/customers",
+        element: <CustomerList/>,
+      },
+      {
+        path: "/customers/:id/orders",
+        element: <CustomerOrders/>,
       },
       {
         path: "/orders/create",

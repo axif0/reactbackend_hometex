@@ -398,7 +398,6 @@ const OrderDetails = () => {
       setSelectedProductInfo(null);
       return;
     }
-    const currentCategoryId = selectedCategoryId;
     setLoadingAttributes(true);
     axios.get(`${base}/products/${pid}`, token())
       .then((res) => {
@@ -409,23 +408,26 @@ const OrderDetails = () => {
         setLoadingAttributes(false);
         setSelectedProductInfo(product);
 
-        if (!currentCategoryId) {
-          const catId = product?.category?.id;
-          const subCatId = product?.sub_category?.id;
-          const childSubCatId = product?.child_sub_category?.id;
-          if (catId) {
-            setSelectedCategoryId(String(catId));
-            const subs = allSubCategories.filter((s) => Number(s.category_id) === Number(catId));
-            setSubCategories(subs);
-          }
-          if (subCatId) {
-            setSelectedSubCategoryId(String(subCatId));
-            const childs = allChildSubCategories.filter((c) => Number(c.sub_category_id) === Number(subCatId));
-            setChildSubCategories(childs);
-          }
-          if (childSubCatId) {
-            setSelectedChildSubCategoryId(String(childSubCatId));
-          }
+        const catId = product?.category?.id ?? product?.category_id;
+        const subCatId = product?.sub_category?.id ?? product?.sub_category_id;
+        const childSubCatId = product?.child_sub_category?.id ?? product?.child_sub_category_id;
+        if (catId) {
+          setSelectedCategoryId(String(catId));
+          const subs = Array.isArray(allSubCategories) ? allSubCategories.filter((s) => Number(s.category_id) === Number(catId)) : [];
+          const subFallback = subCatId
+            ? (product?.sub_category
+              ? [{ id: product.sub_category.id, name: product.sub_category.name, category_id: catId }]
+              : [{ id: subCatId, name: (product.sub_category && product.sub_category.name) || `Sub #${subCatId}`, category_id: catId }])
+            : [];
+          setSubCategories(subs.length > 0 ? subs : subFallback);
+        }
+        if (subCatId) {
+          setSelectedSubCategoryId(String(subCatId));
+          const childs = Array.isArray(allChildSubCategories) ? allChildSubCategories.filter((c) => Number(c.sub_category_id) === Number(subCatId)) : [];
+          setChildSubCategories(childs.length > 0 ? childs : (product?.child_sub_category ? [{ id: product.child_sub_category.id, name: product.child_sub_category.name, sub_category_id: subCatId }] : []));
+        }
+        if (childSubCatId) {
+          setSelectedChildSubCategoryId(String(childSubCatId));
         }
       })
       .catch(() => {
@@ -438,7 +440,7 @@ const OrderDetails = () => {
 
   useEffect(() => {
     const q = productSearch.trim();
-    if (!q || q.length < 2) {
+    if (!q) {
       if (!selectedCategoryId) setAvailableProducts([]);
       return;
     }
@@ -463,6 +465,32 @@ const OrderDetails = () => {
             : [];
           setAvailableProducts(list);
           setSkuSearchLoading(false);
+          const qLower = q.toLowerCase();
+          const exactSkuMatch = list.length === 1 && list[0].sku && String(list[0].sku).trim().toLowerCase() === qLower;
+          if (exactSkuMatch) {
+            const p = list[0];
+            setAddItemProductId(String(p.id));
+            setSelectedProductInfo(p);
+            const catId = p.category?.id ?? p.category_id;
+            const subId = p.sub_category?.id ?? p.sub_category_id;
+            const childId = p.child_sub_category?.id ?? p.child_sub_category_id;
+            if (catId) {
+              setSelectedCategoryId(String(catId));
+              const subs = Array.isArray(allSubCategories) ? allSubCategories.filter((s) => Number(s.category_id) === Number(catId)) : [];
+              const subFallback = subId
+                ? (p.sub_category
+                  ? [{ id: p.sub_category.id, name: p.sub_category.name, category_id: catId }]
+                  : [{ id: subId, name: `Sub #${subId}`, category_id: catId }])
+                : [];
+              setSubCategories(subs.length > 0 ? subs : subFallback);
+            }
+            if (subId) {
+              setSelectedSubCategoryId(String(subId));
+              const childs = Array.isArray(allChildSubCategories) ? allChildSubCategories.filter((c) => Number(c.sub_category_id) === Number(subId)) : [];
+              setChildSubCategories(childs.length > 0 ? childs : (p.child_sub_category ? [{ id: p.child_sub_category.id, name: p.child_sub_category.name, sub_category_id: subId }] : []));
+            }
+            if (childId) setSelectedChildSubCategoryId(String(childId));
+          }
         })
         .catch(() => {
           setAvailableProducts([]);

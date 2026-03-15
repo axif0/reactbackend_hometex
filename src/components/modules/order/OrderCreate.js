@@ -62,6 +62,19 @@ const OrderCreate = () => {
       });
   };
 
+  const getSalesManagers = () => {
+    const token = localStorage.getItem("token");
+    axios
+      .get(`${Constants.BASE_URL}/sales-manager?per_page=100`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        const data = res.data?.data ?? res.data;
+        setSalesManagers(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setSalesManagers([]));
+  };
+
   const [itemsCountsPerPage, setItemsCountPerPage] = useState(0);
   const [totalCountsPerPage, setTotalCountPerPage] = useState(1);
   const [startFrom, setStartFrom] = useState(1);
@@ -114,7 +127,9 @@ const OrderCreate = () => {
     due_amount: 0,
     payment_method_id: 1,
     trx_id: "",
+    sales_manager_id: "",
   });
+  const [salesManagers, setSalesManagers] = useState([]);
 
   console.log(cartItems);
 
@@ -163,7 +178,7 @@ const OrderCreate = () => {
       notes: orderSummary.trx_id || "store counter sale",
     };
     const payload = {
-      created_by: "Store User",
+      created_by: orderSummary.sales_manager_id ? Number(orderSummary.sales_manager_id) : null,
       created_at,
       shop_id,
       carts: cartItems.map((item) => ({
@@ -567,12 +582,18 @@ const OrderCreate = () => {
         ...prevState,
         trx_id: e.target.value,
       }));
+    } else if (e.target.name == "sales_manager_id") {
+      setOrderSummary((prevState) => ({
+        ...prevState,
+        sales_manager_id: e.target.value,
+      }));
     }
   };
 
   useEffect(() => {
     getPaymentMethod();
     getShops();
+    getSalesManagers();
   }, []);
 
   useEffect(() => {
@@ -1130,6 +1151,7 @@ const OrderCreate = () => {
         handleOrderPlace={handleOrderPlace}
         handleOrderSummaryInput={handleOrderSummaryInput}
         paymentMethod={paymentMethod}
+        salesManagers={salesManagers}
         selectedShopDetails={shops.find(s => s.id == selectedShop)}
       />
     </>

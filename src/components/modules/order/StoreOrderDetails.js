@@ -93,7 +93,8 @@ const StoreOrderDetails = () => {
   const taxableAmount = (Number(order.total_amount) || 0) - taxAmount;
   const totalAmount = Number(order.total_amount) || 0;
   const paidAmount = Number(order.paid_amount) || 0;
-  const createdByName = order.created_by_user?.name || (order.created_by != null ? String(order.created_by) : null) || "—";
+  const dueAmount = Number(order.due_amount) || 0;
+  const createdByName = order.created_by_sales_manager?.name || order.created_by_user?.name || (order.created_by != null ? String(order.created_by) : null) || "—";
 
   return (
     <>
@@ -274,6 +275,7 @@ const StoreOrderDetails = () => {
             {paidAmount > 0 && (
             <div className="receipt-row"><span>{paymentLabel} BDT</span><span>{paidAmount.toFixed(2)}</span></div>
           )}
+            <div className="receipt-row"><span>Due BDT</span><span>{dueAmount.toFixed(2)}</span></div>
           </div>
           <div className="receipt-sep">********************************</div>
           <div className="receipt-footer-meta">

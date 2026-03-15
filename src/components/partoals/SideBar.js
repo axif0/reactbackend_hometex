@@ -91,6 +91,7 @@ export default function SideBar() {
                             <nav className="sb-sidenav-menu-nested nav">
                                 <Link className="nav-link" to="/orders">Order List</Link>
                                 <Link className="nav-link" to="/store-orders">Store Order List</Link>
+                                <Link className="nav-link" to="/customers">Customer List</Link>
                                 <Link className="nav-link" to="/orders/create">Create Order</Link>
                                 <Link className="nav-link" to="/order/return">Return</Link>
                                 <Link className="nav-link" to="/adjustments">Adjustment</Link>

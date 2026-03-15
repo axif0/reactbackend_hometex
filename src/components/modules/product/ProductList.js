@@ -63,6 +63,9 @@ const ProductList = () => {
           )
         )
           .then(() => {
+            setProducts((prev) =>
+              prev.filter((p) => !selectedProducts.includes(p.id))
+            );
             setSelectedProducts([]);
             getProducts();
             Swal.fire({
@@ -224,11 +227,23 @@ const ProductList = () => {
             },
           })
           .then((res) => {
+            setProducts((prev) => prev.filter((p) => p.id !== id));
+            setSelectedProducts((prev) => prev.filter((pid) => pid !== id));
             getProducts();
             Swal.fire({
               position: "top-end",
               icon: res.data.cls,
               title: res.data.msg,
+              showConfirmButton: false,
+              toast: true,
+              timer: 1500,
+            });
+          })
+          .catch(() => {
+            Swal.fire({
+              position: "top-end",
+              title: "Error deleting product",
+              icon: "error",
               showConfirmButton: false,
               toast: true,
               timer: 1500,
