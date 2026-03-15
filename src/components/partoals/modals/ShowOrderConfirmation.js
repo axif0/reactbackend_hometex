@@ -74,6 +74,25 @@ const ShowOrderConfirmation = ({handleOrderPlace, handleOrderSummaryInput, ...pr
                         <td className='text-end'>- {new Intl.NumberFormat('us').format(props.order_summary.discount)} ৳</td>
                         </tr>
                         <tr>
+                        <td colSpan={3} className='text-end'>Tax (%)</td>
+                        <td className='text-end'>
+                          <div className='input-group'>
+                            <input
+                              className="form-control form-control-sm text-end"
+                              type={'number'}
+                              name={'tax_percent'}
+                              value={props.order_summary.tax_percent}
+                              onChange={handleOrderSummaryInput}
+                              step="0.1"
+                            />
+                            <div className='input-group-text'>%</div>
+                          </div>
+                        </td>
+                        <td className='text-end'>
+                          {new Intl.NumberFormat('us').format(props.order_summary.tax_amount || 0)} ৳
+                        </td>
+                        </tr>
+                        <tr>
                         <th colSpan={4} className='text-end'>Total</th>
                         <th className='text-end'>{new Intl.NumberFormat('us').format(props.order_summary.pay_able)} ৳</th>
                         </tr>

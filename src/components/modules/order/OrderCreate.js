@@ -105,6 +105,8 @@ const OrderCreate = () => {
     items: 0,
     amount: 0,
     discount: 0,
+    tax_percent: 7.5,
+    tax_amount: 0,
     pay_able: 0,
     customer: "",
     customer_id: 0,
@@ -152,7 +154,7 @@ const OrderCreate = () => {
         : null,
       subtotal: Number(orderSummary.amount) || 0,
       discount_amount: Number(orderSummary.discount) || 0,
-      tax_amount: 0,
+      tax_amount: Number(orderSummary.tax_amount) || 0,
       total_amount: Number(orderSummary.pay_able) || 0,
       paid_amount: Number(orderSummary.paid_amount) || 0,
       due_amount: Number(orderSummary.due_amount) || 0,
@@ -388,21 +390,26 @@ const OrderCreate = () => {
       cartItems.map((val) => {
         const itemPrice = val.price || 0;
         const itemDisc = val.discount_price || 0;
-        
+
         items += val.quantity;
         pay_able += itemPrice * val.quantity;
         discount += itemDisc * val.quantity;
         amount += (itemPrice + itemDisc) * val.quantity;
       });
     }
+    const taxPercent = Number(orderSummary.tax_percent || 0);
+    const taxAmount = +(pay_able * (taxPercent / 100)).toFixed(2);
+    const totalWithTax = pay_able + taxAmount;
     setOrderSummary((prevState) => ({
       ...prevState,
       items: items,
       amount: amount,
       discount: discount,
-      pay_able: pay_able,
+      tax_percent: taxPercent,
+      tax_amount: taxAmount,
+      pay_able: totalWithTax,
       paid_amount: 0,
-      due_amount: pay_able,
+      due_amount: totalWithTax,
     }));
   };
 
@@ -525,7 +532,20 @@ const OrderCreate = () => {
   };
 
   const handleOrderSummaryInput = (e) => {
-    if (
+    if (e.target.name === "tax_percent") {
+      const nextPercent = Number(e.target.value) || 0;
+      const baseWithoutTax =
+        Number(orderSummary.amount || 0) - Number(orderSummary.discount || 0);
+      const nextTaxAmount = +(baseWithoutTax * (nextPercent / 100)).toFixed(2);
+      const totalWithTax = baseWithoutTax + nextTaxAmount;
+      setOrderSummary((prevState) => ({
+        ...prevState,
+        tax_percent: nextPercent,
+        tax_amount: nextTaxAmount,
+        pay_able: totalWithTax,
+        due_amount: totalWithTax - Number(prevState.paid_amount || 0),
+      }));
+    } else if (
       e.target.name == "paid_amount" &&
       orderSummary.pay_able >= e.target.value
     ) {
@@ -581,7 +601,7 @@ const OrderCreate = () => {
             <div className="card-header">
               <CardHeader
                 title={"Create Order"}
-                link={"/orders"}
+                link={"/store-orders"}
                 icon={"fa-list"}
                 button_text={"List"}
               />
