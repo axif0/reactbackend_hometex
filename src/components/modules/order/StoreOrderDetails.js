@@ -60,7 +60,8 @@ const StoreOrderDetails = () => {
 
   const details = order.details || [];
   const shop = order.shop || {};
-  const shopName = shop.name || "Hometex (Bangladesh) Ltd.";
+  // const shopName = shop.name || "Hometex (Bangladesh) Ltd.";
+  const invoiceStoreName = shop.name ? `${shop.name} - Hometex Bangladesh Ltd.` : "Hometex Bangladesh Ltd.";
   const shopAddress = shop.address;
   const addressDisplay = (() => {
     if (!shopAddress) return ["Address not available"];
@@ -235,7 +236,7 @@ const StoreOrderDetails = () => {
       <div id="thermal-receipt" className="thermal-receipt">
         <div className="receipt-paper">
           <div className="receipt-header">
-            <div className="receipt-store-name">{shopName.toUpperCase()}</div>
+            <div className="receipt-store-name">{invoiceStoreName.toUpperCase()}</div>
             {addressDisplay.map((line, i) => (
               <div className="receipt-address" key={i}>{line}</div>
             ))}
